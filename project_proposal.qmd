@@ -1,0 +1,33 @@
+---
+title: "Project Proposal"
+author: "Renat Sergazinov, Gozde Sert, Isaac Ray"
+format: 
+  pdf:
+    include-in-header:
+      - preamble.tex
+      - text: |
+          \addtokomafont{disposition}{\rmfamily}
+editor: visual
+---
+
+# Areas of exploration
+
+## Different prior inclusion probabilities
+
+1.  First, assume we have an oracle for both the number of different distributions from which the observed $Z$'s are drawn, a mapping for which $Z$'s came from which distribution, as well as what the prior inclusion probabilities should be as a function of the mapping. Does the corresponding change in the posterior inclusion probability lead to fewer false positives?
+
+2.  If the above is effective at reducing false positives, can we effectively and efficiently learn from the data:
+
+    1.  What is the mapping for $Z$'s given the number of clusters and prior inclusion probabilities?
+
+    2.  What are good choices for the prior inclusion probabilities given the number of clusters?
+
+    3.  What is a good estimate for the number of clusters (perhaps through CRP)?
+
+## Data/Covariate Scaling
+
+What will happen if we try various rescalings of $X$ and or $Z$ before doing inference? Maybe false positives are related to different covariates being on very different scales but with the same global prior inclusion probability.
+
+## Tree Extension
+
+In the Lie et al. (2010) paper, the CART approach to partitioning the covariate space might be effective if a more flexible model is used (rather than trees built from binary decision stumps, perhaps trees made from multivariate spanning decision trees).
