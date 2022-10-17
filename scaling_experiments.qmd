@@ -1,0 +1,240 @@
+---
+title: "Testing out scaling"
+author: "cool people"
+format: pdf
+editor: visual
+---
+
+```{r setup, include = FALSE}
+library(covdepGE)
+library(tidyverse)
+library(purrr)
+library(Matrix)
+```
+
+## Get a baseline
+
+```{r baseline-sims}
+# Load in simulation study for p = 5, n = 90
+load("simulation_study//p5_n90//res_p5_n90_covdepGE_20220908_215120.rda")
+results_p5_n90 = results
+rm(results)
+load("simulation_study//p100_n300//res_p100_n300_covdepGE_20220824_084919.rda")
+results_p100_n300 = results
+rm(results)
+```
+
+Calculate mean FP/n and FN/n
+
+```{r fp-per-samp-baseline}
+fp_n_p5_n90 = mean(map_dbl(results_p5_n90, pluck, "FP_n"))
+fp_n_p100_n300 = mean(map_dbl(results_p100_n300, pluck, "FP_n"))
+cat("False Positives per sample: p:5, n:90\n")
+summary(map_dbl(results_p5_n90, pluck, "FP_n"))
+cat("False Positives per sample: p:100, n:300\n")
+summary(map_dbl(results_p100_n300, pluck, "FP_n"))
+
+fn_n_p5_n90 = mean(map_dbl(results_p5_n90, pluck, "FN_n"))
+fn_n_p100_n300 = mean(map_dbl(results_p100_n300, pluck, "FN_n"))
+cat("False Negatives per sample: p:5, n:90\n")
+summary(map_dbl(results_p5_n90, pluck, "FN_n"))
+cat("False Negatives per sample: p:100, n:300\n")
+summary(map_dbl(results_p100_n300, pluck, "FN_n"))
+```
+
+Goal: reduce mean FP/n (and either reduce or keep constant FN/n)
+
+# Data generation
+
+Consider first the case when p = 5, n = 90
+
+```{r data-gen}
+set.seed(12345)
+n_trials = 100
+p = 5 # 5 variables
+n = 2*3*3*p # 90 observations
+nj = n %/% 3 # 30 observations per different Z
+data_list = replicate(n_trials, generateData(p, nj, nj, nj), F)
+```
+
+```{r sim-functions, include=FALSE}
+eval_est <- function(est, true){
+
+  # get n
+  n <- dim(est)[3]
+
+  # get true number of edges and non-edges
+  num_edge <- sum(true, na.rm = T)
+  num_non <- sum(true == 0, na.rm = T)
+
+  # calculate sensitivity, specificity, etc.
+  true_edge <- sum(est == 1 & true == 1, na.rm = T)
+  false_edge <- sum(est == 1 & true == 0, na.rm = T)
+  true_non <- sum(est == 0 & true == 0, na.rm = T)
+  false_non <- sum(est == 0 & true == 1, na.rm = T)
+  sens <- true_edge / num_edge
+  spec <- true_non / num_non
+
+  list(sens = sens, spec = spec, TP_n = true_edge / n, FP_n = false_edge / n,
+       TN_n = true_non / n, FN_n = false_non / n)
+}
+
+# function to turn an array into a list of sparse matrices
+sp.array <- function(arr, n){
+  lapply(1:n, function(l) Matrix::Matrix(arr[ , , l], sparse = T))
+}
+
+covdepGE.eval <- function(X, Z, true, n_workers){
+
+  start <- Sys.time()
+
+  # get dimensions of the data and fit covdepGE
+  n <- nrow(X)
+  p <- ncol(X)
+  out <- covdepGE(X = X,
+                  Z = Z,
+                  parallel = T,
+                  num_workers = n_workers)
+
+  # record time and get the array of graphs
+  out$time <- as.numeric(Sys.time() - start, units = "secs")
+  out$str <- array(unlist(out$graphs$graphs), dim = c(p, p, n))
+
+  # covert the unique graphs to a sparse array
+  out$unique_graphs <- out$graphs$unique_graphs
+  for (k in 1:length(out$unique_graphs)){
+    out$unique_graphs[[k]]$graph <- Matrix::Matrix(
+      out$unique_graphs[[k]]$graph, sparse = T)
+  }
+
+  # remove large objects, put the unique graphs back in the graphs sublist
+  out$variational_params <- out$graphs <- out$weights <- NULL
+  out$graphs$unique_graphs <- out$unique_graphs
+  out$unique_graphs <- NULL
+
+  # get performance, convert graphs to a sparse array, and return
+  perf <- eval_est(out$str, true)
+  out[names(perf)] <- perf
+  out$str <- sp.array(out$str, n)
+  message("\ncovdepGE complete ", Sys.time(), "\n")
+  out
+}
+
+simulation_func = function(n_trials, data_list, num_workers) {
+  
+  results <- vector("list", n_trials)
+  names(results) <- c(paste0("trial", 1:n_trials))
+  pb <- txtProgressBar(0, n_trials, style = 3)
+  
+  
+  for (j in 1:n_trials) {
+
+  # record the time the trial started
+  trial_start <- Sys.time()
+
+  # get the data
+  data <- data_list[[j]]
+    n = nrow(data$X)
+    p = ncol(data$X)
+
+  # convert the true precision to an array and then to a graph; mask diagonal
+  prec <- array(unlist(data$true_precision), c(p, p, n))
+  graph <- (prec != 0) * 1 + replicate(n, diag(rep(NA, p)) * 1)
+
+  # fit covdepGE
+  out_covdepGE <- tryCatch(covdepGE.eval(X = data$X,
+                                         Z = data$Z,
+                                         true = graph,
+                                         n_workers = num_workers),
+                           error = function(e) list(error = e))
+  if (!is.null(out_covdepGE$error)) message(out_covdepGE$error)
+
+  # save the trial and update the progress bar
+  results[[j]] <- out_covdepGE
+  setTxtProgressBar(pb, j)
+  }
+  return(results)
+}
+```
+
+```{r scale-attempt}
+
+max_min_scale = function(X) { # Scale each column by max-min
+  # Columnwise; subtract min and divide by resulting max
+  if(!is.matrix(X)) { # for vectors
+    X = as.matrix(X)
+  } 
+  p = ncol(X)
+  n = nrow(X)
+  # faster with max.col(X) and max.col(-X)
+  mins = as.vector(apply(X, 2, min)) 
+  scaled_X = t(t(X)-mins)
+  maxs = as.vector(apply(scaled_X, 2, max))
+  scaled_X = t(t(scaled_X)/maxs)
+  return(list(scaled_X = scaled_X, add_invs = mins, mult_invs = maxs))
+}
+
+max_min_unscale = function(output) {
+  t(t(output$scaled_X)*output$mult_invs + output$add_invs)
+}
+```
+
+# Test max-min scaling
+
+We'll try 3 situations; scaling both X and Z, scaling only Z, and scaling only X
+
+```{r try-min-max-scaling}
+mm_X_data_list = lapply(data_list, function(sim) {
+  output = max_min_scale(sim$X)
+  sim$X = output$scaled_X
+  sim$scaleoutX = output
+  sim
+})
+mm_Z_data_list = lapply(data_list, function(sim) {
+  output = max_min_scale(sim$Z)
+  sim$Z = output$scaled_X
+  sim$scaleoutZ = output
+  sim
+})
+mm_XZ_data_list = lapply(data_list, function(sim) {
+  output = max_min_scale(sim$X)
+  sim$X = output$scaled_X
+  sim$scaleout = output
+  output2 = max_min_scale(sim$Z)
+  sim$Z = output2$scaled_X
+  sim$scaleoutZ = output2
+  sim
+})
+
+num_workers <- parallel::detectCores() - 2
+
+mm_scaled_X_results = simulation_func(n_trials, mm_X_data_list, num_workers)
+mm_scaled_Z_results = simulation_func(n_trials, mm_Z_data_list, num_workers)
+mm_scaled_XZ_results = simulation_func(n_trials, mm_XZ_data_list, num_workers)
+```
+
+```{r max-min-scaling-results}
+cat("False Positives per sample: no scale \n")
+summary(map_dbl(results_p5_n90, pluck, "FP_n"))
+fp_mm_X = mean(map_dbl(mm_scaled_X_results, pluck, "FP_n"))
+cat("False Positives per sample: scale X \n")
+summary(map_dbl(mm_scaled_X_results, pluck, "FP_n"))
+fp_mm_Z = mean(map_dbl(mm_scaled_Z_results, pluck, "FP_n"))
+cat("False Positives per sample: scale Z \n")
+summary(map_dbl(mm_scaled_Z_results, pluck, "FP_n"))
+fp_mm_XZ = mean(map_dbl(mm_scaled_XZ_results, pluck, "FP_n"))
+cat("False Positives per sample: scale X, Z \n")
+summary(map_dbl(mm_scaled_XZ_results, pluck, "FP_n"))
+cat("\n\n")
+cat("False Negatives per sample: no scale \n")
+summary(map_dbl(results_p5_n90, pluck, "FN_n"))
+fn_mm_X = mean(map_dbl(mm_scaled_X_results, pluck, "FN_n"))
+cat("False Negatives per sample: scale X \n")
+summary(map_dbl(mm_scaled_X_results, pluck, "FN_n"))
+fn_mm_Z = mean(map_dbl(mm_scaled_Z_results, pluck, "FN_n"))
+cat("False Negatives per sample: scale Z \n")
+summary(map_dbl(mm_scaled_Z_results, pluck, "FN_n"))
+fn_mm_XZ = mean(map_dbl(mm_scaled_XZ_results, pluck, "FN_n"))
+cat("False Negatives per sample: scale X, Z \n")
+summary(map_dbl(mm_scaled_XZ_results, pluck, "FN_n"))
+```
