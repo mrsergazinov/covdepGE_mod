@@ -10,51 +10,76 @@ library(covdepGE)
 library(tidyverse)
 library(purrr)
 library(Matrix)
+library(xtable)
 ```
 
-## Get a baseline
+## Get a baseline (centered X, centered/scaled Z)
 
 ```{r baseline-sims}
-# Load in simulation study for p = 5, n = 90
-load("simulation_study//p5_n90//res_p5_n90_covdepGE_20220908_215120.rda")
-results_p5_n90 = results
-rm(results)
-load("simulation_study//p100_n300//res_p100_n300_covdepGE_20220824_084919.rda")
-results_p100_n300 = results
-rm(results)
+# Load in simulation studies
+
+# Not doing the p100 n300 case since a single simulation
+# requires over 16 hours on the cluster and many simulations
+# need to be done
+
+p = c(5, 15, 25, 50)
+n = c(90, 90, 150, 150)
+objects_strings = c(
+  "simulation_study//p5_n90//res_p5_n90_covdepGE_20220908_215120.Rda",
+  "simulation_study//p15_n90//res_p15_n90_covdepGE_20220908_215229.Rda",
+  "simulation_study//p25_n150//res_p25_n150_covdepGE_20220825_121750.Rda",
+  "simulation_study//p50_n150//res_p50_n150_covdepGE_20220825_090326.Rda"
+  # "simulation_study//p100_n300//res_p100_n300_covdepGE_20220824_084919.Rda"
+)
+
+results_original = list()
+for(sim in 1:length(objects_strings)) {
+  load(objects_strings[sim])
+  results_original[[sim]] = results
+  rm(results)
+}
+sim_names_original = paste0("p", p, "_n", n)
+results_original = set_names(results_original, sim_names_original)
 ```
 
 Calculate mean FP/n and FN/n
 
-```{r fp-per-samp-baseline}
-fp_n_p5_n90 = mean(map_dbl(results_p5_n90, pluck, "FP_n"))
-fp_n_p100_n300 = mean(map_dbl(results_p100_n300, pluck, "FP_n"))
-cat("False Positives per sample: p:5, n:90\n")
-summary(map_dbl(results_p5_n90, pluck, "FP_n"))
-cat("False Positives per sample: p:100, n:300\n")
-summary(map_dbl(results_p100_n300, pluck, "FP_n"))
+```{r fp-per-samp-baseline, results='asis'}
+false_positives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  )
+false_negatives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  )
 
-fn_n_p5_n90 = mean(map_dbl(results_p5_n90, pluck, "FN_n"))
-fn_n_p100_n300 = mean(map_dbl(results_p100_n300, pluck, "FN_n"))
-cat("False Negatives per sample: p:5, n:90\n")
-summary(map_dbl(results_p5_n90, pluck, "FN_n"))
-cat("False Negatives per sample: p:100, n:300\n")
-summary(map_dbl(results_p100_n300, pluck, "FN_n"))
+false_positives_baseline %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Normalized Z, Centered X")
+
+false_negatives_baseline %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable("False negatives per sample - Normalized Z, Centered X")
+
 ```
 
 Goal: reduce mean FP/n (and either reduce or keep constant FN/n)
 
 # Data generation
 
-Consider first the case when p = 5, n = 90
-
-```{r data-gen}
+```{r data-gen, cache = TRUE}
 set.seed(12345)
 n_trials = 100
-p = 5 # 5 variables
-n = 2*3*3*p # 90 observations
-nj = n %/% 3 # 30 observations per different Z
-data_list = replicate(n_trials, generateData(p, nj, nj, nj), F)
+
+simulation_list = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData(p, nj, nj, nj), F)
+})
 ```
 
 ```{r sim-functions, include=FALSE}
@@ -84,17 +109,27 @@ sp.array <- function(arr, n){
   lapply(1:n, function(l) Matrix::Matrix(arr[ , , l], sparse = T))
 }
 
-covdepGE.eval <- function(X, Z, true, n_workers){
+covdepGE.eval <- function(X, Z, true, n_workers, transforms = TRUE){
 
   start <- Sys.time()
 
   # get dimensions of the data and fit covdepGE
   n <- nrow(X)
   p <- ncol(X)
-  out <- covdepGE(X = X,
+  if(transforms){
+    out <- covdepGE(X = X,
                   Z = Z,
                   parallel = T,
                   num_workers = n_workers)
+  } else {
+    out <- covdepGE(X = X,
+                  Z = Z,
+                  parallel = T,
+                  num_workers = n_workers,
+                  center_X = FALSE,
+                  scale_Z = FALSE)
+  }
+  
 
   # record time and get the array of graphs
   out$time <- as.numeric(Sys.time() - start, units = "secs")
@@ -120,7 +155,10 @@ covdepGE.eval <- function(X, Z, true, n_workers){
   out
 }
 
-simulation_func = function(n_trials, data_list, num_workers) {
+simulation_func = function(n_trials, 
+                           data_list, 
+                           num_workers, 
+                           normalize) {
   
   results <- vector("list", n_trials)
   names(results) <- c(paste0("trial", 1:n_trials))
@@ -145,7 +183,8 @@ simulation_func = function(n_trials, data_list, num_workers) {
   out_covdepGE <- tryCatch(covdepGE.eval(X = data$X,
                                          Z = data$Z,
                                          true = graph,
-                                         n_workers = num_workers),
+                                         n_workers = num_workers,
+                                         transforms = normalize),
                            error = function(e) list(error = e))
   if (!is.null(out_covdepGE$error)) message(out_covdepGE$error)
 
@@ -157,7 +196,7 @@ simulation_func = function(n_trials, data_list, num_workers) {
 }
 ```
 
-```{r scale-attempt}
+```{r min-max-funcs}
 
 max_min_scale = function(X) { # Scale each column by max-min
   # Columnwise; subtract min and divide by resulting max
@@ -179,62 +218,187 @@ max_min_unscale = function(output) {
 }
 ```
 
+# Raw performance (no center/scaling)
+
 # Test max-min scaling
 
 We'll try 3 situations; scaling both X and Z, scaling only Z, and scaling only X
 
-```{r try-min-max-scaling}
-mm_X_data_list = lapply(data_list, function(sim) {
-  output = max_min_scale(sim$X)
-  sim$X = output$scaled_X
-  sim$scaleoutX = output
-  sim
+```{r try-min-max-scaling, warning=FALSE, message=FALSE, cache = TRUE}
+min_max_simulation_list = map(simulation_list, function(setup){
+  mm_X_data_list = map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleoutX = output
+    sim
+  })
+  mm_Z_data_list = map(setup, function(sim) {
+    output = max_min_scale(sim$Z)
+    sim$Z = output$scaled_X
+    sim$scaleoutZ = output
+    sim
+  })
+  mm_XZ_data_list = map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+  list(mm_X_data_list, mm_Z_data_list, mm_XZ_data_list)
 })
-mm_Z_data_list = lapply(data_list, function(sim) {
-  output = max_min_scale(sim$Z)
-  sim$Z = output$scaled_X
-  sim$scaleoutZ = output
-  sim
-})
-mm_XZ_data_list = lapply(data_list, function(sim) {
-  output = max_min_scale(sim$X)
-  sim$X = output$scaled_X
-  sim$scaleout = output
-  output2 = max_min_scale(sim$Z)
-  sim$Z = output2$scaled_X
-  sim$scaleoutZ = output2
-  sim
-})
-
-num_workers <- parallel::detectCores() - 2
-
-mm_scaled_X_results = simulation_func(n_trials, mm_X_data_list, num_workers)
-mm_scaled_Z_results = simulation_func(n_trials, mm_Z_data_list, num_workers)
-mm_scaled_XZ_results = simulation_func(n_trials, mm_XZ_data_list, num_workers)
 ```
 
-```{r max-min-scaling-results}
-cat("False Positives per sample: no scale \n")
-summary(map_dbl(results_p5_n90, pluck, "FP_n"))
-fp_mm_X = mean(map_dbl(mm_scaled_X_results, pluck, "FP_n"))
-cat("False Positives per sample: scale X \n")
-summary(map_dbl(mm_scaled_X_results, pluck, "FP_n"))
-fp_mm_Z = mean(map_dbl(mm_scaled_Z_results, pluck, "FP_n"))
-cat("False Positives per sample: scale Z \n")
-summary(map_dbl(mm_scaled_Z_results, pluck, "FP_n"))
-fp_mm_XZ = mean(map_dbl(mm_scaled_XZ_results, pluck, "FP_n"))
-cat("False Positives per sample: scale X, Z \n")
-summary(map_dbl(mm_scaled_XZ_results, pluck, "FP_n"))
-cat("\n\n")
-cat("False Negatives per sample: no scale \n")
-summary(map_dbl(results_p5_n90, pluck, "FN_n"))
-fn_mm_X = mean(map_dbl(mm_scaled_X_results, pluck, "FN_n"))
-cat("False Negatives per sample: scale X \n")
-summary(map_dbl(mm_scaled_X_results, pluck, "FN_n"))
-fn_mm_Z = mean(map_dbl(mm_scaled_Z_results, pluck, "FN_n"))
-cat("False Negatives per sample: scale Z \n")
-summary(map_dbl(mm_scaled_Z_results, pluck, "FN_n"))
-fn_mm_XZ = mean(map_dbl(mm_scaled_XZ_results, pluck, "FN_n"))
-cat("False Negatives per sample: scale X, Z \n")
-summary(map_dbl(mm_scaled_XZ_results, pluck, "FN_n"))
+```{r run-expensive-things, cache = TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+num_workers <- parallel::detectCores() - 8
+doParallel::registerDoParallel(cores = num_workers)
+
+min_max_X_simulation_results = min_max_simulation_list %>% map(~pluck(.x, 1)) %>%
+  map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = FALSE)
+  })
+  
+save(min_max_X_simulation_results, file = "minmax_X_sim.Rda")
+
+min_max_Z_simulation_results = min_max_simulation_list %>% map(~pluck(.x, 2)) %>%
+  map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = FALSE)
+  })
+  
+save(min_max_Z_simulation_results, file = "minmax_Z_sim.Rda")
+
+min_max_XZ_simulation_results = min_max_simulation_list %>% map(~pluck(.x, 3)) %>%
+  map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = FALSE)
+  })
+  
+save(min_max_XZ_simulation_results, file = "minmax_XZ_sim.Rda")
 ```
+
+```{r read-results, echo=FALSE, cache=TRUE}
+load("minmax_X_sim.Rda")
+load("minmax_Z_sim.Rda") 
+load("minmax_XZ_sim.Rda")
+```
+
+```{r max-min-scaling-results, results='asis', echo=FALSE}
+min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Max/Min Scaled Z")
+
+min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False negatives per sample - Max/Min Scaled Z")
+```
+
+## Test Max-min + Normalization
+
+First do a max-min transform to scale, then do the z-transform (or mean 0 center transform in the case of X)
+
+```{r run-expensive-norm-things, cache = TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+num_workers <- parallel::detectCores() - 8
+doParallel::registerDoParallel(cores = num_workers)
+
+min_max_norm_X_simulation_results = min_max_simulation_list %>% map(~pluck(.x, 1)) %>%
+  map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+  })
+  
+save(min_max_norm_X_simulation_results, file = "minmax_norm_X_sim.Rda")
+
+min_max_norm_Z_simulation_results = min_max_simulation_list %>% map(~pluck(.x, 2)) %>%
+  map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+  })
+  
+save(min_max_norm_Z_simulation_results, file = "minmax_norm_Z_sim.Rda")
+
+min_max_norm_XZ_simulation_results = min_max_simulation_list %>% map(~pluck(.x, 3)) %>%
+  map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+  })
+  
+save(min_max_norm_XZ_simulation_results, file = "minmax_norm_XZ_sim.Rda")
+```
+
+```{r load-norm-mm-res, echo=FALSE}
+load("minmax_norm_X_sim.Rda")
+load("minmax_norm_Z_sim.Rda") 
+load("minmax_norm_XZ_sim.Rda")
+```
+
+
+
+```{r max-min-norm-scaling-results, results='asis', echo=FALSE}
+min_max_norm_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Max/Min Scaled X and Normalization")
+
+min_max_norm_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False negatives per sample - Max/Min Scaled X and Normalization")
+
+min_max_norm_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Max/Min Scaled Z and Normalization")
+
+min_max_norm_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False negatives per sample - Max/Min Scaled Z and Normalization")
+
+min_max_norm_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Max/Min Scaled X and Z and Normalization")
+
+min_max_norm_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False negatives per sample - Max/Min Scaled X and Z and Normalization")
+```
+
+
+
+
+
+
