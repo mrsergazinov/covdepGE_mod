@@ -1,0 +1,43 @@
+---
+title: "Project Results"
+author: "Isaac Ray, Renat Sergazinov, Gözde Sert"
+format: 
+  pdf:
+    include-in-header:
+      - preamble.tex
+      - text: |
+          \addtokomafont{disposition}{\rmfamily}
+editor: visual
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+library(covdepGE)
+library(xtable)
+```
+
+# Background
+
+# Problem
+
+Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL]packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to **increase the specificity of the model without substantially hurting the model's sensitivity and speed**.
+
+# Attempted Solutions
+
+We'll look at a variety of different modifications to the algorithm in order of least to most extensive changes necessary, and use the `covdepGE` package[@covdepGE] in order to generate data for simulation studies. For some of these solutions, the package's functions will be used without modification and changes will occur outside of the inference algorithm. Otherwise, any changes to the functions will be explicitly noted.
+
+## Feature Scaling Changes
+
+### Existing Feature Scaling through Normalization
+
+### Max-Min Feature Scaling
+
+### Max-Min + Normalization Feature Scaling
+
+## Multiple Prior Inclusion Probabilities
+
+### Oracle or Informative Prior
+
+### Prior Inclusion through Covariate Clustering
+
+### Prior Inclusion at the Individual Level
