@@ -26,6 +26,8 @@ Despite this model demonstrating superior sensitivity to true dependence relatio
 
 We'll look at a variety of different modifications to the algorithm in order of least to most extensive changes necessary, and use the `covdepGE` package[@covdepGE] in order to generate data for simulation studies. For some of these solutions, the package's functions will be used without modification and changes will occur outside of the inference algorithm. Otherwise, any changes to the functions will be explicitly noted.
 
+In general, we expect that the underlying cause of the specificity issue is due to having a common prior inclusion probability $\pi$ across every spike-and-slab regression being performed despite the varying values of $Z$ (and potentially $X$). We may expect that for certain values of $Z$, we have a different belief about whether variables in $X$ are related. We'll approach this from 2 angles; first by trying to modify our variables and covariates in such a way as to make a common $\pi$ a more appropriate choice, and then by modifying the algorithm to allow for multiple $\pi$ values to be specified either a priori or as a function $\pi(X,Z)$ through something like clustering.
+
 ## Feature Scaling Changes
 
 ### Existing Feature Scaling through Normalization
