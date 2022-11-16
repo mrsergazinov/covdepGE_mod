@@ -13,6 +13,9 @@ bibliography: references.bib
 
 ```{r setup, include=FALSE}
 library(covdepGE)
+library(tidyverse)
+library(purrr)
+library(Matrix)
 library(xtable)
 ```
 
@@ -30,7 +33,66 @@ In general, we expect that the underlying cause of the specificity issue is due 
 
 ## Feature Scaling Changes
 
+The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
+
 ### Existing Feature Scaling through Normalization
+
+Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
+
+```{r baseline-sims, include=FALSE, cache = TRUE}
+# Load in simulation studies
+
+# Not doing the p100 n300 case since a single simulation
+# requires over 16 hours on the cluster and many simulations
+# need to be done
+
+p = c(5, 15, 25, 50) %>% as.integer()
+n = c(90, 90, 150, 150) %>% as.integer()
+objects_strings = c(
+  "simulation_study//p5_n90//res_p5_n90_covdepGE_20220908_215120.Rda",
+  "simulation_study//p15_n90//res_p15_n90_covdepGE_20220908_215229.Rda",
+  "simulation_study//p25_n150//res_p25_n150_covdepGE_20220825_121750.Rda",
+  "simulation_study//p50_n150//res_p50_n150_covdepGE_20220825_090326.Rda"
+  # "simulation_study//p100_n300//res_p100_n300_covdepGE_20220824_084919.Rda"
+)
+
+results_original = list()
+for(sim in 1:length(objects_strings)) {
+  load(objects_strings[sim])
+  results_original[[sim]] = results
+  rm(results)
+}
+sim_names_original = paste0("p", p, "_n", n)
+results_original = set_names(results_original, sim_names_original)
+
+false_positives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  )
+false_negatives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  )
+
+fp_xtable_baseline = false_positives_baseline %>% 
+  map_dfr(summary) %>% 
+  select(Median, Mean) %>%
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Normalized Z, Centered X")
+
+fn_xtable_baseline = false_negatives_baseline %>% 
+  map_dfr(summary) %>% 
+  select(Median, Mean) %>%
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable("False \\textbf{negatives} per sample - Normalized Z, Centered X")
+```
+
+```{r print-baseline-xtable, results='asis', echo=FALSE}
+print(fp_xtable_baseline, comment=FALSE, include.rownames = FALSE)
+print(fn_xtable_baseline, comment=FALSE, include.rownames = FALSE)
+```
 
 ### Max-Min Feature Scaling
 
