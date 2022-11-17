@@ -329,7 +329,7 @@
 #'                  n1 + n2 + 1, ",...,", n1 + n2 + n3))
 #'
 #' # fit the model and visualize the estimated graphs
-#' (out <- covdepGE(X, Z))
+#' (out <- covdepGE(X, Z, pip_assgn = rep(1:3, each=nrow(X) / 3)))
 #' plot(out)
 #'
 #' # visualize the posterior inclusion probabilities for variables (1, 3) and (1, 2)
@@ -346,7 +346,7 @@
 #' Framework For Density Modeling. *Statistica Sinica*, 30(4):2155–2177, 2020.
 ## -----------------------------------------------------------------------------
 covdepGE <- function(X, Z = NULL, hp_method = "hybrid", ssq = NULL, sbsq = NULL,
-                     pip = NULL, pip_assgn = NULL, nssq = 5, nsbsq = 5, npip = 5, 
+                     pip = NULL, pip_assgn = NULL, nssq = 5, nsbsq = 5, npip = 5,
                      ssq_mult = 1.5, ssq_lower = 1e-5, snr_upper = 25, sbsq_lower = 1e-5,
                      pip_lower = 1e-5, pip_upper = NULL, tau = NULL, norm = 2,
                      center_X = TRUE, scale_Z = TRUE, alpha_tol = 1e-5,

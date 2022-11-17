@@ -62,7 +62,7 @@
 ## max_iter_grid: positive integer; if tolerance criteria has not been met by
 ## max_iter_grid iterations during grid search, end CAVI
 ## -----------------------------------------------------------------------------
-cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq, 
+cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
                  npip, ssq_mult, ssq_lower, snr_upper, sbsq_lower, pip_lower,
                  pip_upper, alpha_tol, max_iter, max_iter_grid) {
 
@@ -136,7 +136,7 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
   }
 
   # function to perform hyperparameter search
-  hp_func <- function() {
+  hp_func <- function(curr_cluster) {
     # create the grid
     hp <- expand.grid(pip = pip, ssq = ssq, sbsq = sbsq, elbo = NA, iter = NA)
     hp <- unique(hp)
@@ -148,7 +148,8 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
       # perform CAVI for each of the hyperparameter settings
       out_grid <- grid_search_c(
         y, D, X, mu, alpha, hp$ssq, hp$sbsq, hp$pip,
-        alpha_tol, max_iter_grid
+        alpha_tol, max_iter_grid,
+        curr_cluster
       )
 
       # add the elbo and the converged iter to hp
@@ -157,7 +158,8 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
       # use the best hyperparameters from the grid search to perform CAVI again
       out <- cavi_c(
         y, D, X, out_grid$mu, out_grid$alpha, out_grid$ssq,
-        out_grid$sbsq, out_grid$pip, alpha_tol, max_iter
+        out_grid$sbsq, out_grid$pip, alpha_tol, max_iter,
+        curr_cluster
       )
 
       # save hyperparameter details
@@ -202,7 +204,8 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
           # perform CAVI for each of the hyperparameter settings
           out_grid <- grid_search_c(
             y, D, X, mu, alpha, hp_j$ssq, hp_j$sbsq,
-            hp_j$pip, alpha_tol, max_iter_grid
+            hp_j$pip, alpha_tol, max_iter_grid,
+            curr_cluster
           )
 
           # add the elbo and the converged iter to hp
@@ -213,7 +216,8 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
           # use the best hyperparameters from grid search to perform CAVI again
           out <- cavi_c(
             y, D, X, out_grid$mu, out_grid$alpha, out_grid$ssq,
-            out_grid$sbsq, pip[j], alpha_tol, max_iter
+            out_grid$sbsq, pip[j], alpha_tol, max_iter,
+            curr_cluster
           )
 
           # save the final hyperparameters, elbo, and iterations to converge
@@ -237,7 +241,8 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
           # perform CAVI for the hyperparameter setting
           out <- cavi_c(
             y, D, X, mu, alpha, hp_j$ssq, hp_j$sbsq, hp_j$pip,
-            alpha_tol, max_iter
+            alpha_tol, max_iter,
+            curr_cluster
           )
 
           # add the elbo and the converged iter to hp
@@ -318,8 +323,8 @@ cavi <- function(X, Z, D, y, hp_method, ssq, sbsq, pip, pip_assgn, nssq, nsbsq,
   }
 
   for (assgn in unique(pip_assgn)) {
-    cluster_out <- hp_func()
     ids_assgn <- (pip_assgn == assgn)
+    cluster_out <- hp_func(as.integer(ids_assgn))
     alpha[ids_assgn, ] <- cluster_out$alpha[ids_assgn, ]
     mu[ids_assgn, ] <- cluster_out$mu[ids_assgn, ]
     ssq_var[ids_assgn, ] <- cluster_out$ssq_var[ids_assgn, ]

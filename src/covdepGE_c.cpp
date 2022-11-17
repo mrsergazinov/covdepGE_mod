@@ -76,7 +76,8 @@ double ELBO_calculator_c (const arma::colvec& y, const arma::colvec& D,
 double total_ELBO_c (const arma::colvec& y, const arma::mat& D,
                      const arma::mat& X, const arma::mat& ssq_var,
                      const arma::mat& mu, const arma::mat& alpha, double ssq,
-                     double sbsq, double pip){
+                     double sbsq, double pip,
+                     const arma::colvec& curr_cluster){
 
   // get sample size
   int n = X.n_rows;
@@ -84,13 +85,20 @@ double total_ELBO_c (const arma::colvec& y, const arma::mat& D,
   // instantiate variable to store the total ELBO
   double elbo_tot = 0;
 
-  // loop over all observations
-  for (int l = 0; l < n; l++){
+  // loop over all observations in the current cluster
+  for (int l = 0; l < n; l++) {
 
-    // calculate the ELBO for l-th observation and add it to the total ELBO
-    elbo_tot += ELBO_calculator_c(y, D.col(l), X, ssq_var.row(l).t(),
-                                  mu.row(l).t(), alpha.row(l).t(), ssq, sbsq,
-                                  pip);
+    // if the l-th observation is in the current cluster
+    if (curr_cluster(l) == 1) {
+
+      // calculate the ELBO for the l-th observation
+      double elbo_l = ELBO_calculator_c(y, D.col(l), X, ssq_var.row(l).t(),
+                                        mu.row(l).t(), alpha.row(l).t(), ssq, sbsq,
+                                        pip);
+
+      // add the ELBO to the total
+      elbo_tot += elbo_l;
+    }
   }
 
   return elbo_tot;
@@ -206,7 +214,8 @@ void alpha_update_c(const arma::mat& ssq_var, const arma::mat& mu,
 Rcpp::List cavi_c(const arma::colvec& y, const arma::mat& D,
                   const arma::mat& X, const arma::mat& mu0,
                   const arma::mat& alpha0, double ssq, double sbsq, double pip,
-                  double alpha_tol, int max_iter) {
+                  double alpha_tol, int max_iter,
+                  const arma::colvec& curr_cluster) {
 
   // get sample size and number of parameters
   int n = X.n_rows;
@@ -255,7 +264,7 @@ Rcpp::List cavi_c(const arma::colvec& y, const arma::mat& D,
   }
 
   // calculate ELBO across n observations
-  double ELBO = total_ELBO_c(y, D, X, ssq_var, mu, alpha, ssq, sbsq, pip);
+  double ELBO = total_ELBO_c(y, D, X, ssq_var, mu, alpha, ssq, sbsq, pip, curr_cluster);
 
   // return final mu matrix, alpha matrix, the final ELBO, the number of
   // iterations to converge, and the fitted variance hyperparameters
@@ -306,7 +315,8 @@ Rcpp::List grid_search_c(const arma::colvec& y, const arma::mat& D,
                          const arma::mat& X, const arma::mat& mu,
                          const arma::mat& alpha, const arma::colvec& ssq,
                          const arma::colvec& sbsq, const arma::colvec& pip,
-                         double alpha_tol, int max_iter){
+                         double alpha_tol, int max_iter,
+                         const arma::colvec& curr_cluster){
 
   // get sample size and number of parameters
   int n = X.n_rows;
@@ -335,7 +345,7 @@ Rcpp::List grid_search_c(const arma::colvec& y, const arma::mat& D,
 
     // run CAVI; store elbo and number of iterations to converge
     out = cavi_c(y, D, X, mu, alpha, ssq(j), sbsq(j), pip(j), alpha_tol,
-                 max_iter);
+                 max_iter, curr_cluster);
     elbo_new = as<double>(out["elbo"]);
     iter_new = as<double>(out["iter"]);
     elbo_store(j) = elbo_new;
