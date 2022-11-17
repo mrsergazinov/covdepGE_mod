@@ -519,7 +519,7 @@ covdepGE <- function(X, Z = NULL, hp_method = "hybrid", ssq = NULL, sbsq = NULL,
   total_elbo <- sum(elbo)
 
   # get the grid size
-  grid_sz <- nrow(hp[[1]]$grid)
+  grid_sz <- nrow(hp[[1]][[1]]$grid)
 
   # Graph post-processing
 
