@@ -1,31 +1,62 @@
-### Summary of the previous algorithm
+---
+title: "Testing out multiple prior inclusions"
+author: "cool people"
+format: pdf
+editor: visual
+---
+
+```{r setup, include = FALSE}
+library(covdepGE)
+library(tidyverse)
+library(purrr)
+library(Matrix)
+library(xtable)
+```
+
+# Summary of the previous algorithm
 
 Given an $n \times p$ matrix X and an $n \times q$ matrix Z, we hope to find function $\Omega: R^q \to R^{p\times p}$, which models the dependence of variables (represented as columns) in $X$ as a function of extraneous covariates in $Z$. We do this by performing $n*p$ regressions, one for each observation and variable.
 
 ### Suggested fix
-For each of the $n$ regressions across observations, specify a separate inclusion probability $\pi_i$.  
 
-### Steps of the current algorithm
+For each of the $n$ regressions across observations, specify a separate inclusion probability $\pi_i$.
+
+## Steps of the current algorithm
 
 Below are the steps of the current algorithm that specifically highlight how the algorithm depends on the specification of the prior inclusion probability $\pi$:
 
-1. The wrapper `R` function is `covdepGE.R`. It specifies the parameters for the grid search and then calls the workhorse function below for each of the $p$ variables. For our experiment, I think it's okay if we just focus on the brute force `grid_search` for hyper-parameters and ignore other methods.
+1.  The wrapper `R` function is `covdepGE.R`. It specifies the parameters for the grid search and then calls the workhorse function below for each of the $p$ variables. For our experiment, I think it's okay if we just focus on the brute force `grid_search` for hyper-parameters and ignore other methods.
 
-2. The workhorse `R` function that runs the algorithm is `cavi.R` inside the `R` folder, which returns $\alpha, \mu, \sigma^2$, the posterior parameters for each of the $n$ spike-and-slab weighted regressions. These parameters have shapes $n\times p$ for each of $n$ regressions and $p$. The main methods in `cavi.R` for the grid search are `grid_search_c` and `cavi_c`, which are both inside the `covdepGE.cpp` file.
+2.  The workhorse `R` function that runs the algorithm is `cavi.R` inside the `R` folder, which returns $\alpha, \mu, \sigma^2$, the posterior parameters for each of the $n$ spike-and-slab weighted regressions. These parameters have shapes $n\times p$ for each of $n$ regressions and $p$. The main methods in `cavi.R` for the grid search are `grid_search_c` and `cavi_c`, which are both inside the `covdepGE.cpp` file.
 
-3. The function `grid_search_c` is just a loop that goes through all the hyperparameter specifications.
+3.  The function `grid_search_c` is just a loop that goes through all the hyperparameter specifications.
 
-4. The function `cavi_c` is the function that computes `cavi` updates for each of the $n$ regressions. The specific part that is of interest to us is the update for `alpha`, specified in `alpha_update_c`.
+4.  The function `cavi_c` is the function that computes `cavi` updates for each of the $n$ regressions. The specific part that is of interest to us is the update for `alpha`, specified in `alpha_update_c`.
 
-5. Disregarding all the terms that do not depend on **prior inclusion probability $\pi$, the update for $\alpha$ depends on $\pi$** through $\alpha_1 = \log (\pi / (1 - \pi))$, which is currently a `double`.
+5.  Disregarding all the terms that do not depend on **prior inclusion probability** $\pi$, the update for $\alpha$ depends on $\pi$ through $\alpha_1 = \log (\pi / (1 - \pi))$, which is currently a `double`.
 
-### Proposed changes
+# Proposed changes
+
 Essentially, all the parts of the algorithm above stay the same in terms of the logic / algebra. However, we need to change / specify 2 pieces:
 
-1. The data type of prior inclusion probability $\pi$ needs to change from `double` to a $n$-vector. This entails also changing the (algebraic) operations that we do with $\pi$, which occur in `cavi_c` and `alpha_update_c` functions. 
+1.  The data type of prior inclusion probability $\pi$ needs to change from `double` to a $n$-vector. This entails also changing the (algebraic) operations that we do with $\pi$, which occur in `cavi_c` and `alpha_update_c` functions.
 
-2. The specification of the grid search for $\pi$ needs to change. Currently, in `grid_search_c`, candidate $\pi$ values are specified as `double`. Now, we need to specify candidates for $\pi$ as the $n$-vectors. Ideally, the idea is to initialize different $n$-vectors based on the clustering of the $n$-observations. This is, however, non-trivial, since we also need to chose clustering algorithm. Two simpler ways to test if this will work is to:
-   - Randomly initialize candidate $n$-vectors, which would correspond to assuming different inclusion probabilities for each of the $n$ regressions;
-   - Assume oracle knowledge of the clusters (which we have in simulation settings), and assign different inclusion probabilities $\pi_i = v_{c(i)}$ for $i = 1, \dots, n$, where $c(i)$ indicates cluster assignment for observation $i$.
+2.  The specification of the grid search for $\pi$ needs to change. Currently, in `grid_search_c`, candidate $\pi$ values are specified as `double`. Now, we need to specify candidates for $\pi$ as the $n$-vectors. Ideally, the idea is to initialize different $n$-vectors based on the clustering of the $n$-observations. This is, however, non-trivial, since we also need to chose clustering algorithm. Two simpler ways to test if this will work is to:
 
-   
+    -   Randomly initialize candidate $n$-vectors, which would correspond to assuming different inclusion probabilities for each of the $n$ regressions;
+    -   Assume oracle knowledge of the clusters (which we have in simulation settings), and assign different inclusion probabilities $\pi_i = v_{c(i)}$ for $i = 1, \dots, n$, where $c(i)$ indicates cluster assignment for observation $i$.
+
+## Results
+
+We'll compare results with the baseline under 3 different paradigms: 
+
+1) Every row $i$ gets its own $\pi_i$ 
+
+2) The rows are clustered with an oracle mapping $O(i)$ giving the true membership of each row, and each cluster gets its own $\pi$ 
+
+3) The rows are clustered with a mapping learned from the data and each cluster gets its own $\pi$
+
+The baseline performance (one $\pi$ value) is listed below. Lower false positives per sample is the goal, as well as keeping the false negatives per sample relatively constant.
+
+
+
