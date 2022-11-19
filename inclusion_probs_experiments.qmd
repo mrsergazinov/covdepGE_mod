@@ -58,5 +58,288 @@ We'll compare results with the baseline under 3 different paradigms:
 
 The baseline performance (one $\pi$ value) is listed below. Lower false positives per sample is the goal, as well as keeping the false negatives per sample relatively constant.
 
+```{r baseline-sims, echo=FALSE}
+# Load in simulation studies
+
+# Not doing the p100 n300 case since a single simulation
+# requires over 16 hours on the cluster and many simulations
+# need to be done
+
+p = c(5, 15, 25, 50)
+n = c(90, 90, 150, 150)
+objects_strings = c(
+  "simulation_study//p5_n90//res_p5_n90_covdepGE_20220908_215120.Rda",
+  "simulation_study//p15_n90//res_p15_n90_covdepGE_20220908_215229.Rda",
+  "simulation_study//p25_n150//res_p25_n150_covdepGE_20220825_121750.Rda",
+  "simulation_study//p50_n150//res_p50_n150_covdepGE_20220825_090326.Rda"
+  # "simulation_study//p100_n300//res_p100_n300_covdepGE_20220824_084919.Rda"
+)
+
+results_original = list()
+for(sim in 1:length(objects_strings)) {
+  load(objects_strings[sim])
+  results_original[[sim]] = results
+  rm(results)
+}
+sim_names_original = paste0("p", p, "_n", n)
+results_original = set_names(results_original, sim_names_original)
+```
+
+```{r fp-per-samp-baseline, results='asis', echo=FALSE}
+false_positives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  )
+false_negatives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  )
+
+false_positives_baseline %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Normalized Z, Centered X")
+
+false_negatives_baseline %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable("False negatives per sample - Normalized Z, Centered X")
+
+```
+
+```{r data-gen, cache = TRUE, echo=FALSE}
+set.seed(2468)
+n_trials = 100
+
+simulation_list = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData(p, nj, nj, nj), F)
+})
+```
+
+```{r sim-functions, include=FALSE}
+eval_est <- function(est, true){
+
+  # get n
+  n <- dim(est)[3]
+
+  # get true number of edges and non-edges
+  num_edge <- sum(true, na.rm = T)
+  num_non <- sum(true == 0, na.rm = T)
+
+  # calculate sensitivity, specificity, etc.
+  true_edge <- sum(est == 1 & true == 1, na.rm = T)
+  false_edge <- sum(est == 1 & true == 0, na.rm = T)
+  true_non <- sum(est == 0 & true == 0, na.rm = T)
+  false_non <- sum(est == 0 & true == 1, na.rm = T)
+  sens <- true_edge / num_edge
+  spec <- true_non / num_non
+
+  list(sens = sens, spec = spec, TP_n = true_edge / n, FP_n = false_edge / n,
+       TN_n = true_non / n, FN_n = false_non / n)
+}
+
+# function to turn an array into a list of sparse matrices
+sp.array <- function(arr, n){
+  lapply(1:n, function(l) Matrix::Matrix(arr[ , , l], sparse = T))
+}
+
+covdepGE.eval <- function(X, Z, true, n_workers, transforms = TRUE, pip_assgn = NULL){
+
+  start <- Sys.time()
+
+  # get dimensions of the data and fit covdepGE
+  n <- nrow(X)
+  p <- ncol(X)
+  if(transforms){
+    out <- covdepGE(X = X,
+                  Z = Z,
+                  parallel = T,
+                  num_workers = n_workers,
+                  pip_assgn = pip_assgn)
+  } else {
+    out <- covdepGE(X = X,
+                  Z = Z,
+                  parallel = T,
+                  num_workers = n_workers,
+                  center_X = FALSE,
+                  scale_Z = FALSE,
+                  pip_assgn = pip_assgn)
+  }
+  
+
+  # record time and get the array of graphs
+  out$time <- as.numeric(Sys.time() - start, units = "secs")
+  out$str <- array(unlist(out$graphs$graphs), dim = c(p, p, n))
+
+  # covert the unique graphs to a sparse array
+  out$unique_graphs <- out$graphs$unique_graphs
+  for (k in 1:length(out$unique_graphs)){
+    out$unique_graphs[[k]]$graph <- Matrix::Matrix(
+      out$unique_graphs[[k]]$graph, sparse = T)
+  }
+
+  # remove large objects, put the unique graphs back in the graphs sublist
+  out$variational_params <- out$graphs <- out$weights <- NULL
+  out$graphs$unique_graphs <- out$unique_graphs
+  out$unique_graphs <- NULL
+
+  # get performance, convert graphs to a sparse array, and return
+  perf <- eval_est(out$str, true)
+  out[names(perf)] <- perf
+  out$str <- sp.array(out$str, n)
+  message("\ncovdepGE complete ", Sys.time(), "\n")
+  out
+}
+
+simulation_func = function(n_trials, 
+                           data_list, 
+                           num_workers, 
+                           normalize,
+                           pip_assgn = NULL) {
+  
+  results <- vector("list", n_trials)
+  names(results) <- c(paste0("trial", 1:n_trials))
+  pb <- txtProgressBar(0, n_trials, style = 3)
+  
+  
+  for (j in 1:n_trials) {
+
+  # record the time the trial started
+  trial_start <- Sys.time()
+
+  # get the data
+  data <- data_list[[j]]
+    n = nrow(data$X)
+    p = ncol(data$X)
+
+  # convert the true precision to an array and then to a graph; mask diagonal
+  prec <- array(unlist(data$true_precision), c(p, p, n))
+  graph <- (prec != 0) * 1 + replicate(n, diag(rep(NA, p)) * 1)
+
+  # fit covdepGE
+  out_covdepGE <- tryCatch(covdepGE.eval(X = data$X,
+                                         Z = data$Z,
+                                         true = graph,
+                                         n_workers = num_workers,
+                                         transforms = normalize,
+                                         pip_assgn = pip_assgn),
+                           error = function(e) list(error = e))
+  if (!is.null(out_covdepGE$error)) message(out_covdepGE$error)
+
+  # save the trial and update the progress bar
+  results[[j]] <- out_covdepGE
+  setTxtProgressBar(pb, j)
+  }
+  return(results)
+}
+```
+
+### Oracle mapping
+
+```{r run-oracle-setup, cache = TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+num_workers <- parallel::detectCores() - 1
+doParallel::registerDoParallel(cores = num_workers)
+
+oracle_results = simulation_list %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE, 
+                    pip_assgn = pluck(setup, 1, "interval"))
+  })
+
+save(oracle_results, file = "oracle_results.Rda")
+```
+
+```{r load-oracle-res, include=FALSE}
+load("oracle_results.Rda")
+```
+
+```{r oracle-results, results='asis', echo=FALSE}
+oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Oracle Clustering")
+
+oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_dfr(summary) %>% 
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False negatives per sample - Oracle Clustering")
+```
+
+### Unique per observation
+
+```{r run-unique-setup, cache = TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+unique_results = simulation_list %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE, 
+                    pip_assgn = 1:(setup %>% pluck(1, "interval") %>% length()))
+  })
+
+save(unique_results, file = "unique_results.Rda")
+```
+
+### Clustering
+
+We'll use hierarchical clustering, and assume that even if we don't know which observations belong to which cluster we at least know there are either 2, 3, or 6 clusters (in truth there are 3). In a sense, we are testing the model's robustness to misspecification of the number of clusters.
+
+```{r run-cluster-setup, cache = TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+k_vec = c(2, 3, 6)
+
+estimate_membership = function(setup, k) {
+  setup %>% pluck(1, "Z") %>% dist() %>% hclust() %>% cutree(k = k)
+}
+
+cluster_results = simulation_list %>% map(function(setup){
+    map(k_vec, function(k) {
+      simulation_func(n_trials, setup, num_workers, normalize = TRUE, 
+                    pip_assgn = estimate_membership(setup, k))
+    })
+  })
+
+save(cluster_results, file = "cluster_results.Rda")
+```
+
+
+```{r load-cluster-res, include=FALSE}
+k_vec = c(2, 3, 6)
+load("cluster_results.Rda")
+```
+
+```{r cluster-results, results='asis', echo=FALSE}
+cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FP_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_dfr(summary) %>% 
+  cbind(p = rep(p, each = 3), n = rep(n, each = 3), clusts = rep(k_vec, 4), .) %>%
+  tibble() %>%
+  xtable(caption = "False positives per sample - Hierarchical Clustering")
+
+cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FN_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_dfr(summary) %>% 
+  cbind(p = rep(p, each = 3), n = rep(n, each = 3), clusts = rep(k_vec, 4), .) %>%
+  tibble() %>%
+  xtable(caption = "False negatives per sample - Hierarchical Clustering")
+```
+
+
+
 
 
