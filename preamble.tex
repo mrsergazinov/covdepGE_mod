@@ -2,7 +2,12 @@
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{mathrsfs}
+\usepackage{xcolor}
 
+\AtBeginDocument{%
+  \let\mathbb\relax
+  \DeclareMathAlphabet{\mathbb}{U}{msb}{m}{n}%
+}
 
 \newcommand{\ul}[1]{\underline{#1}}
 \newcommand\m[1]{\begin{pmatrix}#1\end{pmatrix}}
@@ -22,3 +27,5 @@
 \newcommand\convd{\xrightarrow{D}}
 \newcommand{\convl}[1]{\xrightarrow{L^{#1}}}
 \newcommand\iid{\stackrel{\textrm{iid}}{\sim}}
+
+\definecolor{tamumaroon}{HTML}{500000}

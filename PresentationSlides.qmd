@@ -1,0 +1,161 @@
+---
+title: "Investigating False Positives in Covariate-Dependent Graphical Model"
+author: "Isaac R, Renat S, Gözde S"
+format: 
+  beamer:
+    include-in-header: 
+      - preamble.tex
+      - text: \usecolortheme[named=tamumaroon]{structure}
+      - text: \setbeameroption{show notes} 
+    theme: Boadilla
+    fonttheme: serif
+    
+editor: visual
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+library(covdepGE)
+library(tidyverse)
+library(purrr)
+library(Matrix)
+library(xtable)
+```
+
+# Background and Introduction
+
+## Graphical Modeling
+
+\note{
+ Gozde:
+ 
+ Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ idd observations $x_1, \dots , x_p$.
+}
+
+## Adding Covariates
+
+\note{
+ Gozde
+}
+
+## Existing Literature
+
+\note{
+ Gozde
+}
+
+## The W-PL Approach
+
+\note{
+ Gozde
+}
+
+## Spike and Slab for Bayesian Approach
+
+\note{
+ Gozde
+}
+
+## CAVI Updates
+
+\note{
+ Gozde
+}
+
+## The False Positive Problem
+
+\note{
+ Gozde
+}
+
+ - This model demonstrates superior sensitivity than competing methods
+ - It suffers from lower specificity 
+    - Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL]packages, specificity gets substantially worse with $p$. 
+ - For gene expression data, this could lead to worse outcomes than a less sensitive and more specific model
+    - The cost of carrying out experiments which show a lack of a predicted relation may be very expensive    - We want to **increase the specificity of the model without substantially hurting the model's sensitivity and speed**.
+
+# Attempted Solutions
+
+
+## Feature & Covariate Scaling
+
+\note{
+ Gozde
+}
+
+## Multiple Prior Inclusion Probabilities
+
+\note{
+ Gozde
+}
+
+# Simulations
+
+## Normalization (Baseline)
+
+\note{
+ Gozde
+}
+
+## Min/Max Scaling
+
+\note{
+ Gozde
+}
+
+## Combination of Scalings
+
+\note{
+ Gozde
+}
+
+## Oracle Clustering for Multiple $\pi$
+
+\note{
+ Gozde
+}
+
+## Hierarchical Clustering for Multiple $\pi$
+
+\note{
+ Gozde
+}
+
+## Individual $\pi$ for Each Observation
+
+\note{
+ Gozde
+}
+
+# Discussions
+
+## Why does Min/Max Alone Fail?
+
+\note{
+ Gozde
+}
+
+## Why does Min/Max + Normalization Succeed?
+
+\note{
+ Gozde
+}
+
+## Why does Multiple $\pi$ Values Fail?
+
+\note{
+ Gozde
+}
+
+## Additional Experiments to Try
+
+\note{
+ Gozde
+}
+
+
+## References
+
+
+
+
