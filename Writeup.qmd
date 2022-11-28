@@ -117,6 +117,113 @@ print(fn_xtable_baseline,
 
 ### Max-Min Feature Scaling
 
+```{r min-max-only-sims, include=FALSE, cache = TRUE}
+load("minmax_Z_sim.Rda")
+
+fp_xtable_mmZ = min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled Z")
+
+fn_xtable_mmZ = min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled Z")
+
+rm(min_max_Z_simulation_results)
+
+load("minmax_X_sim.Rda")
+
+fp_xtable_mmX = min_max_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled X")
+
+fn_xtable_mmX = min_max_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled X")
+
+rm(min_max_X_simulation_results)
+
+load("minmax_XZ_sim.Rda")
+
+fp_xtable_mmXZ = min_max_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled X and Z")
+
+fn_xtable_mmXZ = min_max_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled X and Z")
+
+rm(min_max_XZ_simulation_results)
+```
+
+```{r print-mm-only-xtable, results='asis', echo=FALSE}
+print(fp_xtable_mmZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fp_xtable_mmX, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmX, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fp_xtable_mmXZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmXZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
 ### Max-Min + Normalization Feature Scaling
 
 ## Multiple Prior Inclusion Probabilities
