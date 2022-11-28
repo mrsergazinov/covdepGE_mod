@@ -378,4 +378,58 @@ print(fn_xtable_oracle,
 
 ### Prior Inclusion through Covariate Clustering
 
+```{r clustered-sims, include=FALSE, cache = TRUE}
+k_vec = c(2, 3, 6) %>% as.character()
+load("cluster_results.Rda")
+
+fp_xtable_cluster = cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FP_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        clusts = rep(k_vec, 4), 
+        "Baseline Mean (sd)" = rep(fp_baseline_str[[1]], each = 3), .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Hierarchical Clustering")
+
+fn_xtable_cluster = cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FN_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        clusts = rep(k_vec, 4), 
+        "Baseline Mean (sd)" = rep(fn_baseline_str[[1]], each = 3), .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Hierarchical Clustering")
+
+rm(cluster_results)
+```
+
+```{r print-cluster-xtable, results='asis', echo=FALSE}
+print(fp_xtable_cluster, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_cluster, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+
+
 ### Prior Inclusion at the Individual Level
