@@ -337,6 +337,45 @@ print(fn_xtable_mmnorm_XZ,
 
 ### Oracle or Informative Prior
 
+```{r oracle-sims, include=FALSE, cache = TRUE}
+load("oracle_results.Rda")
+
+fp_xtable_oracle = oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Oracle Clustering")
+
+fn_xtable_oracle = oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Oracle Clustering")
+
+rm(oracle_results)
+```
+
+```{r print-oracle-xtable, results='asis', echo=FALSE}
+print(fp_xtable_oracle, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_oracle, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
 ### Prior Inclusion through Covariate Clustering
 
 ### Prior Inclusion at the Individual Level
