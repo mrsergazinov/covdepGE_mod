@@ -40,6 +40,13 @@ The first approach will be to use a different or additional approach to feature 
 Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
 
 ```{r baseline-sims, include=FALSE, cache = TRUE}
+# Utility function for tables
+meanAndSdStr = function(x) {
+  string = c(paste0(round(mean(x),2)," (", round(sd(x),2), ")"))
+  return(string)
+}
+
+
 # Load in simulation studies
 
 # Not doing the p100 n300 case since a single simulation
@@ -74,24 +81,38 @@ false_negatives_baseline = results_original %>%
     map_dbl(x, pluck, "FN_n")
   )
 
-fp_xtable_baseline = false_positives_baseline %>% 
-  map_dfr(summary) %>% 
-  select(Median, Mean) %>%
+fp_baseline_str = false_positives_baseline %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Baseline Mean (sd)" = string)
+
+fn_baseline_str = false_negatives_baseline %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Baseline Mean (sd)" = string)
+
+fp_xtable_baseline = fp_baseline_str %>%
   cbind(p, n, .) %>%
   tibble() %>%
   xtable(caption = "False \\textbf{positives} per sample - Normalized Z, Centered X")
 
-fn_xtable_baseline = false_negatives_baseline %>% 
-  map_dfr(summary) %>% 
-  select(Median, Mean) %>%
+fn_xtable_baseline = fn_baseline_str %>%
   cbind(p, n, .) %>%
   tibble() %>%
   xtable("False \\textbf{negatives} per sample - Normalized Z, Centered X")
+
+rm(results_original)
 ```
 
 ```{r print-baseline-xtable, results='asis', echo=FALSE}
-print(fp_xtable_baseline, comment=FALSE, include.rownames = FALSE)
-print(fn_xtable_baseline, comment=FALSE, include.rownames = FALSE)
+print(fp_xtable_baseline, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_baseline, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
 ```
 
 ### Max-Min Feature Scaling
