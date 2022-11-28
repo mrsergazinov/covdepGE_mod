@@ -19,8 +19,53 @@ library(Matrix)
 library(xtable)
 ```
 
-# Background
+# Background and Introduction
 
+Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ idd observations $x_1, \dots , x_p$. Several methods developed under this assumption however, in practice, the observations may not be identically distributed. In this paper they suppose the variability in the graph structure across observations depending on additional covariate information.
+
+## Current Literature and Previous Methods
+
+There are several approaches to model heterogeneous graphs. Here we mention some of them.
+
+```{=tex}
+\begin{itemize}
+\item Without using covariate information: These methods depend on the criteria of first splitting the data into homogeneous groups and sharing information withing groups
+\item Adding the covariates into the mean structure of Gaussian graphical models as multiple linear regressions such that the mean is a continuous function of covariates. This approaches studied from a Bayesian perspective and a frequentist perspective. For this approach still uses the homogeneous graph structure for all observation which we do not want. 
+\item Modeling the underlying covariance matrix as a function of the covariates. The main difficulty of this approach is to enforce sparsity in the precision matrix while being positive definite, as the sparsity in the covariance matrix does not normally carry to the precision matrix through matrix inversion.
+\end{itemize}
+```
+## Proposed formulation
+
+Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $n$ individuals on $p$ variables. We denote the rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$ and the columns $x_j \in \mathbb{R}^n$.\\ The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, as a function of some extraneous covariates $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. In this method, a weighted pseudo-likelihood (W-PL) function to obtain a posterior distribution for the graph structure for a fixed individual, with the weights defined as a function of the covariates.
+
+## A weighted pseudo-likelihood (W-PL) approach
+
+First we begin with introducing the pseudo-likelihood approach. Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as 
+\begin{equation}
+L(j) = p(x_j | X_{-j}, \beta_j) \sim \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
+\end{equation}
+with a possibly sparse coefficient vector $\beta_j$. Then for a fixed graph $G$ the pseudo-likelihood can be calculated as
+\begin{equation}
+L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
+\end{equation}
+
+In this paper different from the previous methods, we define a weighted version of this conditional likelihood for each individual. They assume that the underlying graph structure is a function of extraneous covariates $z$. Thus, we allow the coefficient vector $\beta_j$’s to be different for different individuals,depending on the extraneous covariates. $\beta_j^l \in \mathbb R^{p−1}$ denotes the coefficient vector corresponding to the regression of the variable $x_j$ on the remaining variables for individual $l$. Let $z_i$ denote the covariate vector associated with the $i$-th individual and define $\mathbf z = (\mathbf  z_1, . . . , \mathbf  z_n)$. Next, relative to the covariate $z$, we assign weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf  z_l\Vert)$ to every individual where $\phi_{\tau}$ is the Gaussian density with mean 0 and variance $\tau^2$. When $z = z_l$ corresponds to the $l$-th individual in the study, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual. \\
+Proposed conditional working model: for $i = 1, \dots ,n$, 
+$$
+x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\mathbf z_i ))
+$$
+Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$. The weighted conditional distribution function can be calculated as 
+\begin{equation}
+p^w(x_j | X_{-j}, \beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
+\end{equation}
+
+Then using the previous pseudo-likelihood for the graph $G$, we now give the weighted  pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$, 
+$$
+L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
+$$
+Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$.
+
+Also we define Hence the prior distribution for $(\beta_j^l, )$ 
 # Problem
 
 Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL]packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to **increase the specificity of the model without substantially hurting the model's sensitivity and speed**.
