@@ -63,9 +63,37 @@ Then using the previous pseudo-likelihood for the graph $G$, we now give the wei
 $$
 L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
 $$
-Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$.
-
-Also we define Hence the prior distribution for $(\beta_j^l, )$ 
+Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$. So for $k \in \{1, \dots, p \},$ $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$ and equals to zero with probability $1 -\pi$. $\gamma_{j,k}^l = 1\{\beta_{j,k}^l \neq 0\}$ can be treated as Bernoulli random variables with a common probability of success $\pi$. Then we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$. Then prior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be written as
+$$
+p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l} .
+$$
+Then the posterior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be calculated as
+$$
+p(\beta_{j,k}^l, \gamma_{j,k}^l|X) \propto \exp \left\{- \frac{1}{2\sigma^2} \sum_{i =1}^n \left(x_{ij} - \sum_{k =1, k \neq j}^p x_{ik}\beta_{j,k}^l \right)^2 w_l(\mathbf z_i) \right\}p_0(\beta_{j,k}^l, \gamma_{j,k}^l). 
+$$
+## A Block mean-field Variational Inference
+Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.    
+Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence:
+$$
+q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
+$$
+Instead of solving the above problem we work on the evidence-lower bound(ELBO):
+$$
+ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
+$$
+and maximize it. 
+For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation: \\
+Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have 
+$$
+q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
+$$
+Then we have the following variational parameter updates using the batch-wise updating algorithm: 
+$$
+(s_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},
+$$
+$$
+\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}
+$$
 # Problem
 
 Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL]packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to **increase the specificity of the model without substantially hurting the model's sensitivity and speed**.
