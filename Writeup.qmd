@@ -113,6 +113,13 @@ The first approach will be to use a different or additional approach to feature 
 Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
 
 ```{r baseline-sims, include=FALSE, cache = TRUE}
+# Utility function for tables
+meanAndSdStr = function(x) {
+  string = c(paste0(round(mean(x),2)," (", round(sd(x),2), ")"))
+  return(string)
+}
+
+
 # Load in simulation studies
 
 # Not doing the p100 n300 case since a single simulation
@@ -147,34 +154,355 @@ false_negatives_baseline = results_original %>%
     map_dbl(x, pluck, "FN_n")
   )
 
-fp_xtable_baseline = false_positives_baseline %>% 
-  map_dfr(summary) %>% 
-  select(Median, Mean) %>%
+fp_baseline_str = false_positives_baseline %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Baseline Mean (sd)" = string)
+
+fn_baseline_str = false_negatives_baseline %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Baseline Mean (sd)" = string)
+
+fp_xtable_baseline = fp_baseline_str %>%
   cbind(p, n, .) %>%
   tibble() %>%
   xtable(caption = "False \\textbf{positives} per sample - Normalized Z, Centered X")
 
-fn_xtable_baseline = false_negatives_baseline %>% 
-  map_dfr(summary) %>% 
-  select(Median, Mean) %>%
+fn_xtable_baseline = fn_baseline_str %>%
   cbind(p, n, .) %>%
   tibble() %>%
   xtable("False \\textbf{negatives} per sample - Normalized Z, Centered X")
+
+rm(results_original)
 ```
 
 ```{r print-baseline-xtable, results='asis', echo=FALSE}
-print(fp_xtable_baseline, comment=FALSE, include.rownames = FALSE)
-print(fn_xtable_baseline, comment=FALSE, include.rownames = FALSE)
+print(fp_xtable_baseline, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_baseline, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
 ```
 
 ### Max-Min Feature Scaling
 
+```{r min-max-only-sims, include=FALSE, cache = TRUE}
+load("minmax_Z_sim.Rda")
+
+fp_xtable_mmZ = min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled Z")
+
+fn_xtable_mmZ = min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled Z")
+
+rm(min_max_Z_simulation_results)
+
+load("minmax_X_sim.Rda")
+
+fp_xtable_mmX = min_max_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled X")
+
+fn_xtable_mmX = min_max_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled X")
+
+rm(min_max_X_simulation_results)
+
+load("minmax_XZ_sim.Rda")
+
+fp_xtable_mmXZ = min_max_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled X and Z")
+
+fn_xtable_mmXZ = min_max_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled X and Z")
+
+rm(min_max_XZ_simulation_results)
+```
+
+```{r print-mm-only-xtable, results='asis', echo=FALSE}
+print(fp_xtable_mmZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fp_xtable_mmX, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmX, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fp_xtable_mmXZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmXZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
 ### Max-Min + Normalization Feature Scaling
+
+```{r min-max-norm-sims, include=FALSE, cache = TRUE}
+load("minmax_norm_Z_sim.Rda")
+
+fp_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled then Normalized Z, Centered X")
+
+fn_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled then Normalized Z, Centered X")
+
+rm(min_max_norm_Z_simulation_results)
+
+load("minmax_norm_X_sim.Rda")
+
+fp_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Normalized Z, Max/Min Scaled then Centered X")
+
+fn_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Normalized Z, Max/Min Scaled then Centered X")
+
+rm(min_max_norm_X_simulation_results)
+
+load("minmax_norm_XZ_sim.Rda")
+
+fp_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled then Centered X and then Normalized Z")
+
+fn_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled then Centered X and then Normalized Z")
+
+rm(min_max_norm_XZ_simulation_results)
+```
+
+```{r print-mm-norm-xtable, results='asis', echo=FALSE}
+print(fp_xtable_mmnorm_Z, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmnorm_Z, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fp_xtable_mmnorm_X,
+      comment=FALSE,
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmnorm_X, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fp_xtable_mmnorm_XZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_mmnorm_XZ, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
 
 ## Multiple Prior Inclusion Probabilities
 
 ### Oracle or Informative Prior
 
+```{r oracle-sims, include=FALSE, cache = TRUE}
+load("oracle_results.Rda")
+
+fp_xtable_oracle = oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Oracle Clustering")
+
+fn_xtable_oracle = oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Oracle Clustering")
+
+rm(oracle_results)
+```
+
+```{r print-oracle-xtable, results='asis', echo=FALSE}
+print(fp_xtable_oracle, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_oracle, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
 ### Prior Inclusion through Covariate Clustering
+
+```{r clustered-sims, include=FALSE, cache = TRUE}
+k_vec = c(2, 3, 6) %>% as.character()
+load("cluster_results.Rda")
+
+fp_xtable_cluster = cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FP_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        clusts = rep(k_vec, 4), 
+        "Baseline Mean (sd)" = rep(fp_baseline_str[[1]], each = 3), .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Hierarchical Clustering")
+
+fn_xtable_cluster = cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FN_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        clusts = rep(k_vec, 4), 
+        "Baseline Mean (sd)" = rep(fn_baseline_str[[1]], each = 3), .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Hierarchical Clustering")
+
+rm(cluster_results)
+```
+
+```{r print-cluster-xtable, results='asis', echo=FALSE}
+print(fp_xtable_cluster, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_cluster, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+
 
 ### Prior Inclusion at the Individual Level
