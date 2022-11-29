@@ -1,51 +1,260 @@
----
-title: "Investigating False Positives in Covariate-Dependent Graphical Model"
-author: "Isaac R, Renat S, Gözde S"
-format: 
-  beamer:
-    include-in-header: 
-      - preamble.tex
-      - text: \usecolortheme[named=tamumaroon]{structure}
-      - text: \setbeameroption{show notes} 
-    theme: Boadilla
-    fonttheme: serif
-    
-editor: visual
-bibliography: references.bib
----
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  ignorenonframetext,
+]{beamer}
+\usepackage{pgfpages}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{caption label separator}{: }
+\setbeamercolor{caption name}{fg=normal text.fg}
+\beamertemplatenavigationsymbolsempty
+% Prevent slide breaks in the middle of a paragraph
+\widowpenalties 1 10000
+\raggedbottom
+\setbeamertemplate{part page}{
+  \centering
+  \begin{beamercolorbox}[sep=16pt,center]{part title}
+    \usebeamerfont{part title}\insertpart\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{section page}{
+  \centering
+  \begin{beamercolorbox}[sep=12pt,center]{part title}
+    \usebeamerfont{section title}\insertsection\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{subsection page}{
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center]{part title}
+    \usebeamerfont{subsection title}\insertsubsection\par
+  \end{beamercolorbox}
+}
+\AtBeginPart{
+  \frame{\partpage}
+}
+\AtBeginSection{
+  \ifbibliography
+  \else
+    \frame{\sectionpage}
+  \fi
+}
+\AtBeginSubsection{
+  \frame{\subsectionpage}
+}
 
-```{r setup, include=FALSE}
-library(covdepGE)
-library(tidyverse)
-library(purrr)
-library(Matrix)
-library(xtable)
-```
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usetheme[]{Boadilla}
+\usefonttheme{serif}
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\newif\ifbibliography
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
 
-# Background and Introduction
 
-## Graphical Modeling
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+\usepackage{caption}
+% Make caption package work with longtable
+\makeatletter
+\def\fnum@table{\tablename~\thetable}
+\makeatother
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslentryspacingunit} % times entry-spacing
+\setlength{\cslentryspacingunit}{\parskip}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+  \let\oldpar\par
+  \def\par{\hangindent=\cslhangindent\oldpar}
+  \fi
+  % set entry spacing
+  \setlength{\parskip}{#2\cslentryspacingunit}
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
 
-```{=tex}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage{xcolor}
+
+\AtBeginDocument{%
+  \let\mathbb\relax
+  \DeclareMathAlphabet{\mathbb}{U}{msb}{m}{n}%
+}
+
+\newcommand{\ul}[1]{\underline{#1}}
+\newcommand\m[1]{\begin{pmatrix}#1\end{pmatrix}}
+\newcommand\R{\mathbb{R}}
+\newcommand\sumiton{\sum_{i=1}^n}
+\newcommand\proditon{\prod_{i=1}^n}
+\newcommand\als[1]{\begin{align*}#1\end{align*}}
+\newcommand\convgD{\xrightarrow[]{\mathcal{D}}}
+\newcommand\lt{<}
+\newcommand\gt{>}
+\newcommand{\mb}[1]{\mathbf{#1}}
+\newcommand\F{\mathcal{F}}
+\newcommand\G{\mathcal{G}}
+\newcommand\B{\mathcal{B}}
+\newcommand\convp{\xrightarrow{P}}
+\newcommand\convas{\xrightarrow{a.s.}}
+\newcommand\convd{\xrightarrow{D}}
+\newcommand{\convl}[1]{\xrightarrow{L^{#1}}}
+\newcommand\iid{\stackrel{\textrm{iid}}{\sim}}
+
+\definecolor{tamumaroon}{HTML}{500000}
+\usecolortheme[named=tamumaroon]{structure}
+\setbeameroption{show notes}
+\makeatletter
+\makeatother
+\makeatletter
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\AtBeginDocument{%
+\ifdefined\contentsname
+  \renewcommand*\contentsname{Table of contents}
+\else
+  \newcommand\contentsname{Table of contents}
+\fi
+\ifdefined\listfigurename
+  \renewcommand*\listfigurename{List of Figures}
+\else
+  \newcommand\listfigurename{List of Figures}
+\fi
+\ifdefined\listtablename
+  \renewcommand*\listtablename{List of Tables}
+\else
+  \newcommand\listtablename{List of Tables}
+\fi
+\ifdefined\figurename
+  \renewcommand*\figurename{Figure}
+\else
+  \newcommand\figurename{Figure}
+\fi
+\ifdefined\tablename
+  \renewcommand*\tablename{Table}
+\else
+  \newcommand\tablename{Table}
+\fi
+}
+\@ifpackageloaded{float}{}{\usepackage{float}}
+\floatstyle{ruled}
+\@ifundefined{c@chapter}{\newfloat{codelisting}{h}{lop}}{\newfloat{codelisting}{h}{lop}[chapter]}
+\floatname{codelisting}{Listing}
+\newcommand*\listoflistings{\listof{codelisting}{List of Listings}}
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
+\makeatother
+\makeatletter
+\@ifpackageloaded{tcolorbox}{}{\usepackage[many]{tcolorbox}}
+\makeatother
+\makeatletter
+\@ifundefined{shadecolor}{\definecolor{shadecolor}{rgb}{.97, .97, .97}}
+\makeatother
+\makeatletter
+\makeatother
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={Investigating False Positives in Covariate-Dependent Graphical Model},
+  pdfauthor={Isaac R, Renat S, Gözde S},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Investigating False Positives in Covariate-Dependent Graphical
+Model}
+\author{Isaac R, Renat S, Gözde S}
+\date{}
+
+\begin{document}
+\frame{\titlepage}
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, frame hidden, interior hidden, enhanced, boxrule=0pt, sharp corners, breakable]}{\end{tcolorbox}}\fi
+
+\hypertarget{background-and-introduction}{%
+\section{Background and
+Introduction}\label{background-and-introduction}}
+
+\begin{frame}{Graphical Modeling}
+\protect\hypertarget{graphical-modeling}{}
 \note{
  Gozde:
  
  Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ idd observations 
 $x_1, \dots , x_p$.
 }
-```
-## Adding Covariates
+\end{frame}
 
-```{=tex}
+\begin{frame}{Adding Covariates}
+\protect\hypertarget{adding-covariates}{}
 \note{
  Gozde
  
  Several methods developed under this assumption however, in practice, the observations may not be identically distributed. In this paper they suppose the variability in the graph structure across observations depending on additional covariate information. Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $n$ individuals on $p$ variables. We denote the rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$ and the columns $x_j \in \mathbb{R}^n$.\\ The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, *as a function of some extraneous covariates* $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. 
 }
-```
-## Existing Literature
+\end{frame}
 
-```{=tex}
+\begin{frame}{Existing Literature}
+\protect\hypertarget{existing-literature}{}
 \note{
  Gozde
  
@@ -57,10 +266,10 @@ $x_1, \dots , x_p$.
 \item Modeling the underlying covariance matrix as a function of the covariates. The main difficulty of this approach is to enforce sparsity in the precision matrix while being positive definite, as the sparsity in the covariance matrix does not normally carry to the precision matrix through matrix inversion.
 \end{itemize}
 }
-```
-## The W-PL Approach
+\end{frame}
 
-```{=tex}
+\begin{frame}{The W-PL Approach}
+\protect\hypertarget{the-w-pl-approach}{}
 \note{
  Gozde
  
@@ -68,23 +277,24 @@ $x_1, \dots , x_p$.
 L(j) = p(x_j | X_{-j}, \beta_j) \sim \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
 \end{equation} with a possibly sparse coefficient vector $\beta_j$. 
 }
-```
-## The W-PL Approach
+\end{frame}
 
-```{=tex}
+\begin{frame}{The W-PL Approach}
+\protect\hypertarget{the-w-pl-approach-1}{}
 \note{
 Then for a fixed graph $G$ the pseudo-likelihood can be calculated as \begin{equation}
 L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
 \end{equation}
 In this paper different from the previous methods, they define a weighted version of this conditional likelihood for each individual. They assume that the underlying graph structure is a function of extraneous covariates $z$. Thus, we allow the coefficient vector $\beta_j$'s to be different for different individuals,depending on the extraneous covariates. $\beta_j^l \in \mathbb R^{p−1}$ denotes the coefficient vector corresponding to the regression of the variable $x_j$ on the remaining variables for individual $l$. Let $z_i$ denote the covariate vector associated with the $i$-th individual and define $\mathbf z = (\mathbf z_1, . . . , \mathbf z_n)$. Next, relative to the covariate $z$, we assign weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf z_l\Vert)$ to every individual where $\phi_{\tau}$ is the Gaussian density with mean 0 and variance $\tau^2$. When $z = z_l$ corresponds to the $l$-th individual in the study, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual. 
 }
-```
-## The W-PL Approach
+\end{frame}
 
-```{=tex}
+\begin{frame}[fragile]{The W-PL Approach}
+\protect\hypertarget{the-w-pl-approach-2}{}
 \note{
 Proposed conditional working model: for $i = 1, \dots ,n$, $$
 x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\mathbf z_i ))
+
 $$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$. The weighted conditional distribution function can be calculated as
 
 \begin{equation}
@@ -94,32 +304,41 @@ p^w(x_j | X_{-j}, \beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt
 Then using the previous pseudo-likelihood for the graph $G$, we now give the weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$, $$
 L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
 $$
-}
-```
-## Spike and Slab for Bayesian Approach
 
 ```{=tex}
+}
+
+\begin{verbatim}
+
+
+## Spike and Slab for Bayesian Approach
+
+
 \note{
  Gozde
  
  Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$. So for $k \in \{1, \dots, p \},$ $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$ and equals to zero with probability $1 -\pi$. Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we denote it as $\gamma_{j,k}^l = 1\{\beta_{j,k}^l \neq 0\}$ which can be treated as Bernoulli random variables with a common probability of success $\pi$. Then we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$. Then prior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be written as  
+
 $$
 p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
 $$ 
-}
-```
-## Spike and Slab for Bayesian Approach
 
 ```{=tex}
+}
+\end{verbatim}
+\end{frame}
+
+\begin{frame}{Spike and Slab for Bayesian Approach}
+\protect\hypertarget{spike-and-slab-for-bayesian-approach}{}
 \note{
 Then the posterior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be calculated as $$
 p(\beta_{j,k}^l, \gamma_{j,k}^l|X) \propto \exp \left\{- \frac{1}{2\sigma^2} \sum_{i =1}^n \left(x_{ij} - \sum_{k =1, k \neq j}^p x_{ik}\beta_{j,k}^l \right)^2 w_l(\mathbf z_i) \right\}p_0(\beta_{j,k}^l, \gamma_{j,k}^l). 
 $$
 }
-```
-## CAVI Updates
+\end{frame}
 
-```{=tex}
+\begin{frame}{CAVI Updates}
+\protect\hypertarget{cavi-updates}{}
 \note{
  Gozde
  
@@ -127,26 +346,38 @@ $$
 
 Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: 
 $$
+
+
 q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
 $$
 Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
 ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
 $$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. 
-}
-```
-## CAVI Updates
 
-```{=tex}
+
+}
+\end{frame}
+
+\begin{frame}[fragile]{CAVI Updates}
+\protect\hypertarget{cavi-updates-1}{}
 \note{
 We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have $$
 q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
+
 $$ 
+
+
 
 $$ (s_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},$$
 
 $$\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}$$
+
+
+```{=tex}
 }
-```
+
+\begin{verbatim}
+
 ## The False Positive Problem
 
 ```{=tex}
@@ -155,24 +386,46 @@ $$\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\math
  
  Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` and `JGL`packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to increase the specificity of the model without substantially hurting the model's sensitivity and speed.
 }
-```
--   This model demonstrates superior sensitivity than competing methods
--   It suffers from lower specificity
-    -   Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL] packages, specificity gets substantially worse with $p$.
--   For gene expression data, this could lead to worse outcomes than a less sensitive and more specific model
-    -   The cost of carrying out experiments which show a lack of a predicted relation may be very expensive
--   We want to **increase the specificity and preserve the model's sensitivity and speed**.
+\end{verbatim}
 
-## The False Positive Problem
+\begin{itemize}
+\tightlist
+\item
+  This model demonstrates superior sensitivity than competing methods
+\item
+  It suffers from lower specificity
 
-```{=tex}
+  \begin{itemize}
+  \tightlist
+  \item
+    Compared with competing methods from the \texttt{mgm} (Haslbeck and
+    Waldorp 2020) and \texttt{JGL} (Danaher 2018) packages, specificity
+    gets substantially worse with \(p\).
+  \end{itemize}
+\item
+  For gene expression data, this could lead to worse outcomes than a
+  less sensitive and more specific model
+
+  \begin{itemize}
+  \tightlist
+  \item
+    The cost of carrying out experiments which show a lack of a
+    predicted relation may be very expensive
+  \end{itemize}
+\item
+  We want to \textbf{increase the specificity and preserve the model's
+  sensitivity and speed}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The False Positive Problem}
+\protect\hypertarget{the-false-positive-problem}{}
 \note{
 Isaac
 
 We'll look at a variety of different modifications to the algorithm in order of least to most extensive changes necessary, and use the `covdepGE` package in order to generate data for simulation studies. For some of these solutions, the package's functions will be used without modification and changes will occur outside of the inference algorithm. Otherwise, any changes to the functions will be explicitly noted.
 }
-```
-```{=tex}
+
 \begin{table}[H]
 \centering
 \begin{tabular}{||c|c|c|c|c||}
@@ -194,119 +447,150 @@ We'll look at a variety of different modifications to the algorithm in order of 
 \end{tabular}
 \caption{Comparison of existing methodologies} 
 \end{table}
-```
-# Attempted Solutions
+\end{frame}
 
-## Feature & Covariate Scaling
+\hypertarget{attempted-solutions}{%
+\section{Attempted Solutions}\label{attempted-solutions}}
 
-```{=tex}
+\begin{frame}{Feature \& Covariate Scaling}
+\protect\hypertarget{feature-covariate-scaling}{}
 \note{
  Renat
  
  In general, we expect that the underlying cause of the specificity issue is due to having a common prior inclusion probability $\pi$ across every spike-and-slab regression being performed despite the varying values of $Z$ (and potentially $X$). We may expect that for certain values of $Z$, we have a different belief about whether variables in $X$ are related. We'll approach this from 2 angles; first by trying to modify our variables and covariates in such a way as to make a common $\pi$ a more appropriate choice, and then by modifying the algorithm to allow for multiple $\pi$ values to be specified either a priori or as a function $\pi(X,Z)$ through something like clustering.
 }
-```
-## Multiple Prior Inclusion Probabilities
+\end{frame}
 
-```{=tex}
+\begin{frame}{Multiple Prior Inclusion Probabilities}
+\protect\hypertarget{multiple-prior-inclusion-probabilities}{}
 \note{
  Renat
  
  
 }
-```
-# Simulations
+\end{frame}
 
-## Normalization (Baseline)
+\hypertarget{simulations}{%
+\section{Simulations}\label{simulations}}
 
-```{=tex}
+\begin{frame}{Normalization (Baseline)}
+\protect\hypertarget{normalization-baseline}{}
 \note{
  Isaac
  The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
  Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
 }
-```
-## Min/Max Scaling
+\end{frame}
 
-```{=tex}
+\begin{frame}{Min/Max Scaling}
+\protect\hypertarget{minmax-scaling}{}
 \note{
  Isaac
  
  We'll try 3 situations; scaling both X and Z, scaling only Z, and scaling only X
  
 }
-```
-## Combination of Scaling \\& Normalization
+\end{frame}
 
-```{=tex}
+\begin{frame}{Combination of Scaling \textbackslash\& Normalization}
+\protect\hypertarget{combination-of-scaling-normalization}{}
 \note{
  Isaac
  
  First do a max-min transform to scale, then do the z-transform (or mean 0 center transform in the case of X)
 
 }
-```
-## Oracle Clustering for Multiple $\pi$
+\end{frame}
 
-```{=tex}
+\begin{frame}{Oracle Clustering for Multiple \(\pi\)}
+\protect\hypertarget{oracle-clustering-for-multiple-pi}{}
 \note{
 Renat
  First, assume we have an oracle for both the number of different distributions from which the observed $Z_{l :}$'s are drawn, a mapping for which $Z_{l, :}$'s came from which distribution, as well as what the prior inclusion probabilities should be as a function of the mapping. Given this oracle, we can choose perfectly $\pi_l$ for each individual based on the corresponding extraneous covariates $Z_{l, :}$. Does the corresponding change in the posterior inclusion probability lead to fewer false positives?
 }
-```
-## Hierarchical Clustering for Multiple $\pi$
+\end{frame}
 
-```{=tex}
+\begin{frame}{Hierarchical Clustering for Multiple \(\pi\)}
+\protect\hypertarget{hierarchical-clustering-for-multiple-pi}{}
 \note{
 Renat
  Can we cluster $Z_{l, :}$ empirically, and if so how sensitive is it to the number of clusters?
 }
-```
-## Individual $\pi$ for Each Observation
+\end{frame}
 
--   We experimented with giving every observation its own prior inclusion probability
+\begin{frame}{Individual \(\pi\) for Each Observation}
+\protect\hypertarget{individual-pi-for-each-observation}{}
+\begin{itemize}
+\item
+  We experimented with giving every observation its own prior inclusion
+  probability
+\item
+  Simulations became computationally unfeasible due to the dimension of
+  the parameter space
+\item
+  After multiple days of running the simulation crashed due to excessive
+  memory consumption
+\item
+  Based on the previous results with the oracle clustering and
+  hierarchical clustering, likely worse
+\end{itemize}
 
--   Simulations became computationally unfeasible due to the dimension of the parameter space
-
--   After multiple days of running the simulation crashed due to excessive memory consumption
-
--   Based on the previous results with the oracle clustering and hierarchical clustering, likely worse
-
-```{=tex}
 \note{
  Isaac
  What if every observation had its own $\pi$?
  We experimented with giving every observation its own prior inclusion probability by specifying the cluster mapping as $\{1,2,...,n\}$ however the simulations became computationally unfeasible due to the dimension of the parameter space being grid searched over scaling linearly with $n$. After multiple days of running the simulation crashed due to excessive memory consumption (>32GB). Based on the previous results with the oracle clustering and hierarchical clustering, and a much smaller example with $p =5, n = 10$, we believe it highly unlikely that having a different prior inclusion probability for every observation would improve the false positive rate.
 }
-```
-# Discussions
+\end{frame}
 
-## Why does Min/Max Alone Fail?
+\hypertarget{discussions}{%
+\section{Discussions}\label{discussions}}
 
-```{=tex}
+\begin{frame}{Why does Min/Max Alone Fail?}
+\protect\hypertarget{why-does-minmax-alone-fail}{}
 \note{
  Isaac
 }
-```
-## Why does Min/Max + Normalization Succeed?
+\end{frame}
 
-```{=tex}
+\begin{frame}{Why does Min/Max + Normalization Succeed?}
+\protect\hypertarget{why-does-minmax-normalization-succeed}{}
 \note{
  Isaac
 }
-```
-## Why does Multiple $\pi$ Values Fail?
+\end{frame}
 
-```{=tex}
+\begin{frame}{Why does Multiple \(\pi\) Values Fail?}
+\protect\hypertarget{why-does-multiple-pi-values-fail}{}
 \note{
  Renat
 }
-```
-## Additional Experiments to Try
+\end{frame}
 
-```{=tex}
+\begin{frame}{Additional Experiments to Try}
+\protect\hypertarget{additional-experiments-to-try}{}
 \note{
  Renat
 }
-```
-## References
+\end{frame}
+
+\begin{frame}{References}
+\protect\hypertarget{references}{}
+\hypertarget{refs}{}
+\begin{CSLReferences}{1}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-JGL}{}}%
+Danaher, Patrick. 2018. {``JGL: Performs the Joint Graphical Lasso for
+Sparse Inverse Covariance Estimation on Multiple Classes.''}
+\url{https://CRAN.R-project.org/package=JGL}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-mgm}{}}%
+Haslbeck, Jonas M. B., and Lourens J. Waldorp. 2020.
+{``{\textbraceleft}Mgm{\textbraceright}: Estimating Time-Varying Mixed
+Graphical Models in High-Dimensional Data''} 93.
+\url{https://doi.org/10.18637/jss.v093.i08}.
+
+\end{CSLReferences}
+\end{frame}
+
+
+
+\end{document}
