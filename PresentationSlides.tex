@@ -228,7 +228,7 @@ Model}
 
 \begin{document}
 \frame{\titlepage}
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[sharp corners, frame hidden, interior hidden, borderline west={3pt}{0pt}{shadecolor}, boxrule=0pt, breakable, enhanced]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[breakable, boxrule=0pt, borderline west={3pt}{0pt}{shadecolor}, interior hidden, frame hidden, enhanced, sharp corners]}{\end{tcolorbox}}\fi
 
 \hypertarget{background-and-introduction}{%
 \section{Background and
@@ -357,7 +357,7 @@ approach)}
  Gozde
  
  Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as \begin{equation}
-L(j) = p(x_j | X_{-j}, \beta_j) \sim \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
+L(j) = p(x_j | X_{-j}, \beta_j) \propto \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
 \end{equation} with a possibly sparse coefficient vector $\beta_j$. Then for a fixed graph $G$ the pseudo-likelihood can be calculated as \begin{equation}
 L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
 \end{equation}
@@ -386,7 +386,7 @@ approach)}
  Gozde
  
 Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as \begin{equation}
-L(j) = p(x_j | X_{-j}, \beta_j) \sim \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
+L(j) = p(x_j | X_{-j}, \beta_j) \propto \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
 \end{equation} with a possibly sparse coefficient vector $\beta_j$. Then for a fixed graph $G$ the pseudo-likelihood can be calculated as \begin{equation}
 L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
 \end{equation}
