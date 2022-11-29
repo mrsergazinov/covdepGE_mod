@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (TeX Live 2021) (preloaded format=xelatex 2022.1.27)  28 NOV 2022 20:30
+This is XeTeX, Version 3.141592653-2.6-0.999993 (TeX Live 2021) (preloaded format=xelatex 2022.1.27)  28 NOV 2022 21:41
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1496,6 +1496,55 @@ Overfull \hbox (104.57541pt too wide) has occurred while \output is active
 [2
 
 ]
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
+(Font)              scaled to size 7.665pt on input line 291.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
+(Font)              scaled to size 5.475pt on input line 291.
+LaTeX Font Info:    Trying to load font information for OML+lmm on input line 2
+91.
+(/usr/local/texlive/2021/texmf-dist/tex/latex/lm/omllmm.fd
+File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
+)
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 10.95099pt on input line 291.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 7.66568pt on input line 291.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 5.4755pt on input line 291.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 10.94882pt on input line 291.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 7.66417pt on input line 291.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 5.47441pt on input line 291.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 291
+.
+(/usr/local/texlive/2021/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+) (/usr/local/texlive/2021/texmf-dist/tex/latex/microtype/mt-msa.cfg
+File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 291
+.
+(/usr/local/texlive/2021/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+) (/usr/local/texlive/2021/texmf-dist/tex/latex/microtype/mt-msb.cfg
+File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
+)
+LaTeX Font Info:    Trying to load font information for U+rsfs on input line 29
+1.
+(/usr/local/texlive/2021/texmf-dist/tex/latex/jknapltx/ursfs.fd
+File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
+)
+
+LaTeX Font Warning: Font shape `U/rsfs/m/n' in size <5.475> not available
+(Font)              size <5> substituted on input line 291.
+
+
+Overfull \vbox (31.98721pt too high) detected at line 291
+ []
+
+
 Overfull \hbox (104.57541pt too wide) has occurred while \output is active
  [][][][]  
  []
@@ -1504,47 +1553,28 @@ Overfull \hbox (104.57541pt too wide) has occurred while \output is active
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 10.0pt on input line 245.
+(Font)              scaled to size 10.0pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 7.0pt on input line 245.
+(Font)              scaled to size 7.0pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 5.0pt on input line 245.
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 2
-45.
-(/usr/local/texlive/2021/texmf-dist/tex/latex/lm/omllmm.fd
-File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
+(Font)              scaled to size 5.0pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00092pt on input line 245.
+(Font)              scaled to size 10.00092pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00064pt on input line 245.
+(Font)              scaled to size 7.00064pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.00046pt on input line 245.
+(Font)              scaled to size 5.00046pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 245.
+(Font)              scaled to size 9.99893pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 245.
+(Font)              scaled to size 6.99925pt on input line 291.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 4.99947pt on input line 245.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 245
-.
-(/usr/local/texlive/2021/texmf-dist/tex/latex/amsfonts/umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-) (/usr/local/texlive/2021/texmf-dist/tex/latex/microtype/mt-msa.cfg
-File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
-)
-LaTeX Font Info:    Trying to load font information for U+msb on input line 245
-.
-(/usr/local/texlive/2021/texmf-dist/tex/latex/amsfonts/umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) (/usr/local/texlive/2021/texmf-dist/tex/latex/microtype/mt-msb.cfg
-File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
-)
-LaTeX Font Info:    Trying to load font information for U+rsfs on input line 24
-5.
-(/usr/local/texlive/2021/texmf-dist/tex/latex/jknapltx/ursfs.fd
-File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
-) [4
+(Font)              scaled to size 4.99947pt on input line 291.
+
+Overfull \vbox (92.95006pt too high) detected at line 291
+ []
+
+[4
 
 ]
 Overfull \hbox (104.57541pt too wide) has occurred while \output is active
@@ -1563,7 +1593,7 @@ Overfull \hbox (104.57541pt too wide) has occurred while \output is active
 [7
 
 ]
-Overfull \vbox (3.70001pt too high) detected at line 269
+Overfull \vbox (3.70001pt too high) detected at line 351
  []
 
 [8
@@ -1575,7 +1605,15 @@ Overfull \hbox (104.57541pt too wide) has occurred while \output is active
 
 [9
 
-] [10
+]
+Overfull \vbox (7.20332pt too high) detected at line 380
+ []
+
+
+Overfull \vbox (9.81062pt too high) detected at line 380
+ []
+
+[10
 
 ]
 Overfull \hbox (104.57541pt too wide) has occurred while \output is active
@@ -1585,58 +1623,26 @@ Overfull \hbox (104.57541pt too wide) has occurred while \output is active
 [11
 
 ]
-Overfull \vbox (21.31242pt too high) detected at line 290
+Overfull \vbox (7.20332pt too high) detected at line 417
  []
 
 [12
 
-]
-\openout4 = `PresentationSlides.vrb'.
-
-(./PresentationSlides.vrb
-Overfull \hbox (4946.55351pt too wide) in paragraph at lines 29--29
-[] \TU/lmtt/m/n/10.95 Next, we put a prior distribution for the coefficient par
-ameters corresponding to the regression problem described before. Fix an observ
-ation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a 
-spike-and-slab prior on the parameter $\beta_j^l$. So for $k \in \{1, \dots, p 
-\},$ $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with 
-variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$ and equals t
-o zero with probability $1 -\pi$. Let $\gamma_{j,k}^l$ be the indicator of nonz
-ero $\beta_{j,k}^l$ and we denote it as $\gamma_{j,k}^l = 1\{\beta_{j,k}^l \neq
- 0\}$ which can be treated as Bernoulli random variables with a common probabil
-ity of success $\pi$. Then we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \
-gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$. Then pr
-ior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be written as[] 
- []
-
-
-Overfull \hbox (939.6756pt too wide) in paragraph at lines 32--32
-[]\TU/lmtt/m/n/10.95 p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j
-}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2
-\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j
-,k}^l}.[] 
- []
-
-)
-Overfull \hbox (104.57541pt too wide) has occurred while \output is active
- [][][][]  
- []
-
-[13
-
-]
-! Missing $ inserted.
+])
+Runaway argument?
+{The W-PL Approach} \protect \hypertarget {the-w-pl-approach}{} \note \ETC.
+! File ended while scanning use of \frame.
 <inserted text> 
-                $
-l.329 \end{frame}
-                  
+                \par 
+<*> PresentationSlides.tex
+                           
 Here is how much of TeX's memory you used:
- 36649 strings out of 476919
- 766214 string characters out of 5821840
- 1257841 words of memory out of 5000000
- 55935 multiletter control sequences out of 15000+600000
- 407567 words of font info for 68 fonts, out of 8000000 for 9000
+ 36719 strings out of 476919
+ 768308 string characters out of 5821840
+ 1274114 words of memory out of 5000000
+ 55999 multiletter control sequences out of 15000+600000
+ 410732 words of font info for 87 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 131i,15n,132p,1096b,588s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 131i,15n,132p,1162b,588s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on PresentationSlides.pdf (13 pages).
+Output written on PresentationSlides.pdf (12 pages).
