@@ -26,136 +26,285 @@ library(xtable)
 
 ## Graphical Modeling
 
+```{=tex}
 \note{
  Gozde:
  
  Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ idd observations $x_1, \dots , x_p$.
 }
-
+```
 ## Adding Covariates
 
+```{=tex}
 \note{
  Gozde
+ 
+ Several methods developed under this assumption however, in practice, the observations may not be identically distributed. In this paper they suppose the variability in the graph structure across observations depending on additional covariate information. Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $n$ individuals on $p$ variables. We denote the rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$ and the columns $x_j \in \mathbb{R}^n$.\\ The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, *as a function of some extraneous covariates* $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. 
 }
-
+```
 ## Existing Literature
 
+```{=tex}
 \note{
  Gozde
+ 
+ There are several approaches to model heterogeneous graphs
+
+\begin{itemize}
+\item Without using covariate information: These methods depend on the criteria of first splitting the data into homogeneous groups and sharing information withing groups
+\item Adding the covariates into the mean structure of Gaussian graphical models as multiple linear regressions such that the mean is a continuous function of covariates. This approaches studied from a Bayesian perspective and a frequentist perspective. For this approach still uses the homogeneous graph structure for all observation which we do not want. 
+\item Modeling the underlying covariance matrix as a function of the covariates. The main difficulty of this approach is to enforce sparsity in the precision matrix while being positive definite, as the sparsity in the covariance matrix does not normally carry to the precision matrix through matrix inversion.
+\end{itemize}
 }
 
+```
 ## The W-PL Approach
 
+```{=tex}
 \note{
  Gozde
+ 
+ In this method, a weighted pseudo-likelihood (W-PL) function to obtain a posterior distribution for the graph structure for a fixed individual, with the weights defined as a function of the covariates. Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as \begin{equation}
+L(j) = p(x_j | X_{-j}, \beta_j) \sim \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
+\end{equation} with a possibly sparse coefficient vector $\beta_j$. 
 }
+```
+## The W-PL Approach
 
+```{=tex}
+\note{
+Then for a fixed graph $G$ the pseudo-likelihood can be calculated as \begin{equation}
+L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
+\end{equation}
+In this paper different from the previous methods, they define a weighted version of this conditional likelihood for each individual. They assume that the underlying graph structure is a function of extraneous covariates $z$. Thus, we allow the coefficient vector $\beta_j$'s to be different for different individuals,depending on the extraneous covariates. $\beta_j^l \in \mathbb R^{p−1}$ denotes the coefficient vector corresponding to the regression of the variable $x_j$ on the remaining variables for individual $l$. Let $z_i$ denote the covariate vector associated with the $i$-th individual and define $\mathbf z = (\mathbf z_1, . . . , \mathbf z_n)$. Next, relative to the covariate $z$, we assign weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf z_l\Vert)$ to every individual where $\phi_{\tau}$ is the Gaussian density with mean 0 and variance $\tau^2$. When $z = z_l$ corresponds to the $l$-th individual in the study, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual. 
+}
+```
+## The W-PL Approach
+
+```{=tex}
+\note{
+Proposed conditional working model: for $i = 1, \dots ,n$, $$
+x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\mathbf z_i ))
+$$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$. The weighted conditional distribution function can be calculated as
+
+\begin{equation}
+p^w(x_j | X_{-j}, \beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
+\end{equation}
+
+Then using the previous pseudo-likelihood for the graph $G$, we now give the weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$, $$
+L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
+$$
+}
+```
 ## Spike and Slab for Bayesian Approach
 
+```{=tex}
 \note{
  Gozde
+ 
+ Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$. So for $k \in \{1, \dots, p \},$ $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$ and equals to zero with probability $1 -\pi$. Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we denote it as $\gamma_{j,k}^l = 1\{\beta_{j,k}^l \neq 0\}$ which can be treated as Bernoulli random variables with a common probability of success $\pi$. Then we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$. Then prior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be written as  
+$$
+p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l} .
+$$ 
 }
+```
+## Spike and Slab for Bayesian Approach
 
+```{=tex}
+\note{
+Then the posterior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be calculated as $$
+p(\beta_{j,k}^l, \gamma_{j,k}^l|X) \propto \exp \left\{- \frac{1}{2\sigma^2} \sum_{i =1}^n \left(x_{ij} - \sum_{k =1, k \neq j}^p x_{ik}\beta_{j,k}^l \right)^2 w_l(\mathbf z_i) \right\}p_0(\beta_{j,k}^l, \gamma_{j,k}^l). 
+$$
+}
+```
 ## CAVI Updates
 
+```{=tex}
 \note{
  Gozde
+ 
+ Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.\
+
+Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: $$
+q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
+$$ Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
+ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
+$$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. 
 }
+```
+## CAVI Updates
+
+```{=tex}
+\note{
+We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have $$
+q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
+$$ 
+
+$$ (s_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},$$
+
+$$\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}$$
+}
+```
+## The False Positive Problem
+
+```{=tex}
+\note{
+ Isaac
+ 
+ Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` and `JGL`packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to increase the specificity of the model without substantially hurting the model's sensitivity and speed.
+}
+```
+-   This model demonstrates superior sensitivity than competing methods
+-   It suffers from lower specificity
+    -   Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL] packages, specificity gets substantially worse with $p$.
+-   For gene expression data, this could lead to worse outcomes than a less sensitive and more specific model
+    -   The cost of carrying out experiments which show a lack of a predicted relation may be very expensive
+-   We want to **increase the specificity and preserve the model's sensitivity and speed**.
 
 ## The False Positive Problem
 
+```{=tex}
 \note{
- Gozde
+Isaac
+
+We'll look at a variety of different modifications to the algorithm in order of least to most extensive changes necessary, and use the `covdepGE` package in order to generate data for simulation studies. For some of these solutions, the package's functions will be used without modification and changes will occur outside of the inference algorithm. Otherwise, any changes to the functions will be explicitly noted.
 }
-
- - This model demonstrates superior sensitivity than competing methods
- - It suffers from lower specificity 
-    - Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL]packages, specificity gets substantially worse with $p$. 
- - For gene expression data, this could lead to worse outcomes than a less sensitive and more specific model
-    - The cost of carrying out experiments which show a lack of a predicted relation may be very expensive    - We want to **increase the specificity of the model without substantially hurting the model's sensitivity and speed**.
-
+```
+```{=tex}
+\begin{table}[H]
+\centering
+\begin{tabular}{||c|c|c|c|c||}
+  \hline
+   p & n & Package & Sensitivity (sd) & FP/graph (sd) \\ 
+  \hline 
+   25 & 150 & `covdepGE` & 0.80 (0.08) & 1.29 (0.98) \\ 
+   25 & 150 & `JGL`      & 0.72 (0.19) & 1.96 (1.92) \\ 
+   25 & 150 & `mgm`      & 0.61 (0.11) & 0.09 (0.22) \\ 
+   \hline
+   50 & 150 & `covdepGE` & 0.74 (0.10) & 4.36 (2.22) \\ 
+   50 & 150 & `JGL`      & 0.66 (0.22) & 1.69 (1.90) \\ 
+   50 & 150 & `mgm`      & 0.52 (0.10) & 0.06 (0.15) \\ 
+   \hline 
+   100 & 300 & `covdepGE` & 0.85 (0.06) & 18.21 (3.89) \\ 
+   100 & 300 & `JGL`      & 0.74 (0.11) & 1.52 (1.20) \\ 
+   100 & 300 & `mgm`      & 0.68 (0.09) & 0.02 (0.08) \\
+   \hline
+\end{tabular}
+\caption{Comparison of existing methodologies} 
+\end{table}
+```
 # Attempted Solutions
-
 
 ## Feature & Covariate Scaling
 
+```{=tex}
 \note{
- Gozde
+ Renat
+ 
+ In general, we expect that the underlying cause of the specificity issue is due to having a common prior inclusion probability $\pi$ across every spike-and-slab regression being performed despite the varying values of $Z$ (and potentially $X$). We may expect that for certain values of $Z$, we have a different belief about whether variables in $X$ are related. We'll approach this from 2 angles; first by trying to modify our variables and covariates in such a way as to make a common $\pi$ a more appropriate choice, and then by modifying the algorithm to allow for multiple $\pi$ values to be specified either a priori or as a function $\pi(X,Z)$ through something like clustering.
 }
-
+```
 ## Multiple Prior Inclusion Probabilities
 
+```{=tex}
 \note{
- Gozde
+ Renat
+ 
+ 
 }
-
+```
 # Simulations
 
 ## Normalization (Baseline)
 
+```{=tex}
 \note{
- Gozde
+ Isaac
+ The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
+ Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
 }
-
+```
 ## Min/Max Scaling
 
+```{=tex}
 \note{
- Gozde
+ Isaac
+ 
+ We'll try 3 situations; scaling both X and Z, scaling only Z, and scaling only X
+ 
 }
+```
+## Combination of Scaling \\& Normalization
 
-## Combination of Scalings
-
+```{=tex}
 \note{
- Gozde
-}
+ Isaac
+ 
+ First do a max-min transform to scale, then do the z-transform (or mean 0 center transform in the case of X)
 
+}
+```
 ## Oracle Clustering for Multiple $\pi$
 
+```{=tex}
 \note{
- Gozde
+Renat
+ First, assume we have an oracle for both the number of different distributions from which the observed $Z_{l :}$'s are drawn, a mapping for which $Z_{l, :}$'s came from which distribution, as well as what the prior inclusion probabilities should be as a function of the mapping. Given this oracle, we can choose perfectly $\pi_l$ for each individual based on the corresponding extraneous covariates $Z_{l, :}$. Does the corresponding change in the posterior inclusion probability lead to fewer false positives?
 }
-
+```
 ## Hierarchical Clustering for Multiple $\pi$
 
+```{=tex}
 \note{
- Gozde
+Renat
+ Can we cluster $Z_{l, :}$ empirically, and if so how sensitive is it to the number of clusters?
 }
-
+```
 ## Individual $\pi$ for Each Observation
 
-\note{
- Gozde
-}
+-   We experimented with giving every observation its own prior inclusion probability
 
+-   Simulations became computationally unfeasible due to the dimension of the parameter space
+
+-   After multiple days of running the simulation crashed due to excessive memory consumption
+
+-   Based on the previous results with the oracle clustering and hierarchical clustering, likely worse
+
+```{=tex}
+\note{
+ Isaac
+ What if every observation had its own $\pi$?
+ We experimented with giving every observation its own prior inclusion probability by specifying the cluster mapping as $\{1,2,...,n\}$ however the simulations became computationally unfeasible due to the dimension of the parameter space being grid searched over scaling linearly with $n$. After multiple days of running the simulation crashed due to excessive memory consumption (>32GB). Based on the previous results with the oracle clustering and hierarchical clustering, and a much smaller example with $p =5, n = 10$, we believe it highly unlikely that having a different prior inclusion probability for every observation would improve the false positive rate.
+}
+```
 # Discussions
 
 ## Why does Min/Max Alone Fail?
 
+```{=tex}
 \note{
- Gozde
+ Isaac
 }
-
+```
 ## Why does Min/Max + Normalization Succeed?
 
+```{=tex}
 \note{
- Gozde
+ Isaac
 }
-
+```
 ## Why does Multiple $\pi$ Values Fail?
 
+```{=tex}
 \note{
- Gozde
+ Renat
 }
-
+```
 ## Additional Experiments to Try
 
+```{=tex}
 \note{
- Gozde
+ Renat
 }
-
-
+```
 ## References
-
-
-
-
