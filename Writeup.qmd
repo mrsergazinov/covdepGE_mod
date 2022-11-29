@@ -71,14 +71,11 @@ $$ Instead of solving the above problem we work on the evidence-lower bound(ELBO
 ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
 $$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have $$
 q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
-$$ Then we have the following variational parameter updates using the batch-wise updating algorithm: $$
-(s_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},
+$$ Then we have the following variational parameter updates using the batch-wise updating algorithm: \$\$ (s\_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},
 
 $$\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}$$
 
 ## The Problem
-
-
 
 $$
 \mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik}\left(x_{ij} - \sum_{m \neq j, k} x_{im}\mu_{j,m}^l\alpha_{j,m}^l \right) \right\}
@@ -86,12 +83,11 @@ $$
 
 $$
 \text{logit}(\alpha_{j, k}^l) = \text{logit}(\pi) + \frac{(\mu_{j, k}^l)^2}{2(s_{j, k}^l)^2} + \log \left( \frac{s_{j, k}^l}{\sigma\sigma_\beta}\right). 
-$$ 
+$$
 
 \### Side Note for this method: Using these updates, they run several simulations to obtain 'False-Positives'(FP) and 'False-Negatives'(FN). The FP and FN results came bigger than expected. One reason for this might be to use the same $\pi$ for all individuals. Another reason might be scaling problem. We will address these problems in later sections.
 
 # Problem
-
 
 Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL]packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to **increase the specificity of the model without substantially hurting the model's sensitivity and speed**.
 

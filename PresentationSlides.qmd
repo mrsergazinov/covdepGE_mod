@@ -30,7 +30,8 @@ library(xtable)
 \note{
  Gozde:
  
- Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ idd observations $x_1, \dots , x_p$.
+ Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ idd observations 
+$x_1, \dots , x_p$.
 }
 ```
 ## Adding Covariates
@@ -56,7 +57,6 @@ library(xtable)
 \item Modeling the underlying covariance matrix as a function of the covariates. The main difficulty of this approach is to enforce sparsity in the precision matrix while being positive definite, as the sparsity in the covariance matrix does not normally carry to the precision matrix through matrix inversion.
 \end{itemize}
 }
-
 ```
 ## The W-PL Approach
 
@@ -125,9 +125,11 @@ $$
  
  Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.\
 
-Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: $$
+Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: 
+$$
 q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
-$$ Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
+$$
+Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
 ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
 $$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. 
 }
