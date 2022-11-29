@@ -13,7 +13,7 @@ bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
-library(covdepGE)
+# library(covdepGE)
 library(tidyverse)
 library(purrr)
 library(Matrix)
@@ -236,63 +236,65 @@ $$
 $$
 \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
 $$ 
-    
+
 ## Calculate the posterior distribution
 
 ```{=tex}
 \note{
- Renat
- 
- Then the posterior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be calculated as 
- $$
-p(\beta_{j,k}^l, \gamma_{j,k}^l|X) \propto \exp \left\{- \frac{1}{2\sigma^2} \sum_{i =1}^n \left(x_{ij} - \sum_{k =1, k \neq j}^p x_{ik}\beta_{j,k}^l \right)^2 w_l(\mathbf z_i) \right\}p_0(\beta_{j,k}^l, \gamma_{j,k}^l).
-$$
- 
- Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.\
+    Renat
+     
+    }
+```  
 
-Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: 
+- The full posterior is then given by:
 $$
-q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
+p(\beta_{j}^l, \gamma_{j}^l | X, Z) \propto \exp \left\{ \sum_{i=1}^n \left(x_{ij} - \sum_{k\neq j} x_{ik}\beta_{j, k}^l \right)^2 w_l(\mathbf{z}_i) \right\}p_0(\beta_{j}^l, \gamma_{j}^l)
 $$
-Instead of solving the above problem we work on the evidence-lower bound(ELBO): 
-$$
-ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
-$$ 
-and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. 
-}
-```
+- Unfortunately, the posterior distribution is intractable. 
+- We are going to use variational inference to approximate the posterior distribution.
 
 ## CAVI Updates
 
 ```{=tex}
 \note{
- Renat
- 
- Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.\
-
-Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: 
-$$
-q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
-$$
-Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
-ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
-$$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. 
+    Renat
+    
 }
 ```
+
+-   Recall that the variational inference can be formulated as:
+$$
+(\phi^l_j)^* = \arg \min_{\phi^l_j} D_{KL} \left[ q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) || p(\beta_{j}^l, \gamma_{j}^l | X, Z) \right]
+$$
+- We use the blocked mean-field approach which assumes that the variational distribution is factorized as follows:
+$$
+q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) = \prod_{j\neq k} q_k(\beta_{j, k}^l, \phi^l_{j, k}; \phi^l_{j, k})
+$$
+- Further for each factor $q_k$ of the variational distribution we assume individual spike-and-slab density:
+\begin{align*}
+q_k(\beta_{j, k}^l, \gamma^l_{j, k}; \phi^l_{j, k}) = N(\beta_{j,k}^l;& \mu_{j, k}^l, (s^l_{j, k})^2)^{\gamma^l_{j, k}} \delta_0(\beta^l_{j, k})^{1-\gamma^l_{j, k}}\\
+ &(\alpha^l_{j, k})^{\gamma^l_{j, k}} (1 - \alpha^l_{j, k})^{1-\gamma^l_{j, k}}
+\end{align*}
 
 ## CAVI Updates
 
 ```{=tex}
 \note{
-We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have $$
-q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
-$$ 
-
-$$ (s_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},$$
-
-$$\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left\{ w_l(\mathbf z_i)x_{ik} \right\}$$
+    Renat
+    
 }
 ```
+
+- Deriving the ELBO based on the assumed variational distribution and taking partial derivatives with respect to the variational parameters we obtain the following CAVI updates:
+\begin{align*}
+    (s_{j, k}^l)^2 &= \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)} \\
+    \mu_{j, k}^l &= \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left\{ w_l(\mathbf z_i)x_{ik} \left(x_{ij} - \sum_{m\neq j, k}x_{im}\mu_{j, m}^l \alpha_{j,m}^l \right)  \right\} \\
+    \text{logit}(\alpha_{j, k}^l) &= \text{logit}( \pi) + \left( \frac{\mu_{j, k}^l}{ \sqrt{2} s_{j, k}^l} \right)^2 + \log \frac{s_{j, k}^l}{\sigma \sigma_\beta} \\
+\end{align*}
+- The resulting inclusion probabilities $\alpha_{j, k}^l$ are symmetrized to obtain valid graphical model as:
+$$
+\alpha_{j, k}^l = \frac{1}{2}\left( \alpha_{j, k}^l + \alpha_{k, j}^l \right)
+$$
 
 ## The False Positive Problem
 
@@ -350,21 +352,35 @@ We'll look at a variety of different modifications to the algorithm in order of 
 
 ```{=tex}
 \note{
- Renat
- 
- In general, we expect that the underlying cause of the specificity issue is due to having a common prior inclusion probability $\pi$ across every spike-and-slab regression being performed despite the varying values of $Z$ (and potentially $X$). We may expect that for certain values of $Z$, we have a different belief about whether variables in $X$ are related. We'll approach this from 2 angles; first by trying to modify our variables and covariates in such a way as to make a common $\pi$ a more appropriate choice, and then by modifying the algorithm to allow for multiple $\pi$ values to be specified either a priori or as a function $\pi(X,Z)$ through something like clustering.
+    Renat
+
 }
 ```
+
+-   We believe the underlying cause of the false positive problem is having the same prior inclusion probability $\pi$ across all spike-and-slab regressions.
+-   The first modification we'll make is to scale the features and covariates. The idea is that by scaling the features and covariates, we can make a common prior $\pi$ a more reasonable choice.
+    - Min-max scaling ($\sim U(0, 1)$),
+    - Standardization ($\sim N(0, 1)$).
+-   Pros:
+    -   Easy to implement.
+    -   No changes to the inference algorithm.
+-   Cons:
+    -   Ad-hoc solution.
 
 ## Multiple Prior Inclusion Probabilities
-
 ```{=tex}
-\note{
- Renat
- 
- 
-}
+\note{Renat}
 ```
+ - The second approach is to allow for multiple prior inclusion probabilities $\pi$:
+    - Separate $\pi$ for each individual;
+    - Cluster and assign separate $\pi$ for each cluster.
+-   Pros:
+    -   Theoretically  and intuitevely plausible.
+-  Cons:
+    -   Requires additional steps (clustering, assigning $\pi$ to each cluster).
+    -   May be computationally prohibitive (due to hyper-parameter search for different $\pi$'s).
+
+
 
 # Simulations
 
@@ -401,32 +417,185 @@ We'll look at a variety of different modifications to the algorithm in order of 
 ```
 
 ## Oracle Clustering for Multiple $\pi$
-
 ```{=tex}
-\note{
-Renat
- First, assume we have an oracle for both the number of different distributions from which the observed $Z_{l :}$'s are drawn, a mapping for which $Z_{l, :}$'s came from which distribution, as well as what the prior inclusion probabilities should be as a function of the mapping. Given this oracle, we can choose perfectly $\pi_l$ for each individual based on the corresponding extraneous covariates $Z_{l, :}$. Does the corresponding change in the posterior inclusion probability lead to fewer false positives?
+\note{Renat}
+```
+Suppose we know the true number of clusters $K$ and the true cluster assignments $C$. This is true in the simulation setting.
+```{r baseline-sims, include=FALSE, cache = TRUE}
+# Utility function for tables
+meanAndSdStr = function(x) {
+  string = c(paste0(round(mean(x),2)," (", round(sd(x),2), ")"))
+  return(string)
 }
+
+
+# Load in simulation studies
+
+# Not doing the p100 n300 case since a single simulation
+# requires over 16 hours on the cluster and many simulations
+# need to be done
+
+p = c(5, 15, 25, 50) %>% as.integer()
+n = c(90, 90, 150, 150) %>% as.integer()
+objects_strings = c(
+  "simulation_study//p5_n90//res_p5_n90_covdepGE_20220908_215120.Rda",
+  "simulation_study//p15_n90//res_p15_n90_covdepGE_20220908_215229.Rda",
+  "simulation_study//p25_n150//res_p25_n150_covdepGE_20220825_121750.Rda",
+  "simulation_study//p50_n150//res_p50_n150_covdepGE_20220825_090326.Rda"
+  # "simulation_study//p100_n300//res_p100_n300_covdepGE_20220824_084919.Rda"
+)
+
+results_original = list()
+for(sim in 1:length(objects_strings)) {
+  load(objects_strings[sim])
+  results_original[[sim]] = results
+  rm(results)
+}
+sim_names_original = paste0("p", p, "_n", n)
+results_original = set_names(results_original, sim_names_original)
+
+false_positives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  )
+false_negatives_baseline = results_original %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  )
+
+fp_baseline_str = false_positives_baseline %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Baseline Mean (sd)" = string)
+
+fn_baseline_str = false_negatives_baseline %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Baseline Mean (sd)" = string)
+
+fp_xtable_baseline = fp_baseline_str %>%
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Normalized Z, Centered X")
+
+fn_xtable_baseline = fn_baseline_str %>%
+  cbind(p, n, .) %>%
+  tibble() %>%
+  xtable("False \\textbf{negatives} per sample - Normalized Z, Centered X")
+
+rm(results_original)
+```
+```{r oracle-sims, include=FALSE, cache = TRUE}
+load("oracle_results.Rda")
+
+fp_xtable_oracle = oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fp_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Oracle Clustering")
+
+fn_xtable_oracle = oracle_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p, n, fn_baseline_str, .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Oracle Clustering")
+
+rm(oracle_results)
+```
+```{r print-oracle-xtable, results='asis', echo=FALSE}
+print(fp_xtable_oracle, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(fn_xtable_oracle, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
 ```
 
 ## Hierarchical Clustering for Multiple $\pi$
-
 ```{=tex}
-\note{
-Renat
- Can we cluster $Z_{l, :}$ empirically, and if so how sensitive is it to the number of clusters?
-}
+\note{Renat}
+```
+We can also try empirical clustering approaches. 
+```{r clustered-sims, include=FALSE, cache = TRUE}
+k_vec = c(2, 3, 6) %>% as.character()
+load("cluster_results.Rda")
+
+fp_xtable_cluster = cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FP_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        clusts = rep(k_vec, 4), 
+        "Baseline Mean (sd)" = rep(fp_baseline_str[[1]], each = 3), .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Hierarchical Clustering")
+
+fn_xtable_cluster = cluster_results %>%
+  map(function(x)
+    map(x, function(y)
+      map_dbl(y, pluck, "FN_n")
+      )
+  ) %>% 
+  flatten() %>%
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("Mean (sd)" = string) %>%
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        clusts = rep(k_vec, 4), 
+        "Baseline Mean (sd)" = rep(fn_baseline_str[[1]], each = 3), .) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Hierarchical Clustering")
+
+rm(cluster_results)
+```
+
+```{r print-cluster-xtable-fp, results='asis', echo=FALSE}
+print(fp_xtable_cluster, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+## Hierarchical Clustering for Multiple $\pi (cont.)$
+```{=tex}
+\note{Renat}
+```
+```{r print-cluster-xtable-fn, results='asis', echo=FALSE}
+print(fn_xtable_cluster, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
 ```
 
 ## Individual $\pi$ for Each Observation
 
--   We experimented with giving every observation its own prior inclusion probability
+-   We experimented with giving every observation its own prior inclusion probability.
 
--   Simulations became computationally unfeasible due to the dimension of the parameter space
+-   Simulations became computationally unfeasible due to the dimension of the parameter space.
 
--   After multiple days of running the simulation crashed due to excessive memory consumption
+-   After multiple days of running the simulation crashed due to excessive memory consumption.
 
--   Based on the previous results with the oracle clustering and hierarchical clustering, likely worse
+-   Based on the previous results with the oracle clustering and hierarchical clustering, likely worse.
 
 ```{=tex}
 \note{
@@ -458,16 +627,13 @@ Renat
 
 ```{=tex}
 \note{
- Renat
+    Renat
 }
 ```
 
-## Additional Experiments to Try
-
-```{=tex}
-\note{
- Renat
-}
-```
+- Overfitting to the data.
+    - We see that the fase negatives go down as the number of clusters goes up.
+    - On the other hand, the false positives go up as the number of clusters goes up.
+    - This is because the number of clusters is increasing the number of parameters in the model.
 
 ## References
