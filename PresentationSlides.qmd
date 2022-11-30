@@ -36,8 +36,8 @@ $x_1, \dots , x_p$.
 -   Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix.
 -   The conditional independence structure of the distribution can be represented with a graph $G$.
 -   Node set $V = (1, \dots, p)$ corresponding to the $p$ variables,
--   Edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable.
--   **Goal:** estimate the underlying graph $G$ from given $n$ i.d.d. observations $x_1, \dots , x_p$.
+-   Edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variables.
+-   **Goal:** estimate the underlying graph $G$ from given $n$ i.d.d. observations $x_1, \dots , x_n$.
 
 ## Adding Covariates
 
@@ -95,13 +95,13 @@ $x_1, \dots , x_p$.
 \note{
  Gozde
  
- Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as 
+ Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $(p − 1)$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as 
  \begin{equation}
 L(j) = p(x_j | X_{-j}, \beta_j) \propto \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
 \end{equation} 
 with a possibly sparse coefficient vector $\beta_j$. Then for a fixed graph $G$ the pseudo-likelihood can be calculated as 
 \begin{equation}
-L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
+L(G) = \prod_{j =1}^p L(j) = \prod_{j =1}^p p(x_j | X_{-j}, \beta_j). 
 \end{equation}
 }
 ```
@@ -162,7 +162,7 @@ $$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \math
 }
 ```
 -   Let $z_i$ denote the covariate vector associated with the $i$-th individual and $\mathbf z = (\mathbf z_1,\dots , \mathbf z_n)$
--   Define weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf z_l\Vert)$ to every individual
+-   Define weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − z_l\Vert)$ to every individual
 -   When $z = z_l$ corresponds to the $l$-th individual, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual.
 -   **Proposed conditional working model:** for $i = 1, \dots ,n$, $$
     x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\mathbf z_i ))
@@ -185,9 +185,11 @@ $$ Next, we put a prior distribution for the coefficient parameters correspondin
 }
 ```
 -   Let $W(z, \mathbf z)$ be the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$.
--   The weighted conditional distribution function can be calculated as $$
-    p^w(x_j | X_{-j}, \beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
-    $$
+-   The weighted conditional distribution function can be calculated as 
+\begin{align*}
+    p^w(x_j | X_{-j}, &\beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \\
+    &\exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
+\end{align*}
 -   The weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$: $$
     L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
     $$
@@ -205,9 +207,9 @@ $$
 }
 ```
 -   Next we want to put a prior distribution for the coefficient parameters corresponding to the regression problem described before:
--   Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$: We take a spike-and-slab prior on the parameter $\beta_j^l$: $k \in \{1, \dots, p \}$,
+-   Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$: We take a spike-and-slab prior on the parameter $\beta_j^l$ for $k \in \{1, \dots, p \}$,
 -   $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$
--   Or $\beta_{j,k}^l$ equals to zero with probability $1 -\pi$.
+-   And $\beta_{j,k}^l$ equals to zero with probability $1 -\pi$.
 
 ## Spike and Slab for Bayesian Approach
 
@@ -223,7 +225,7 @@ $$
 -   Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$.
 
 -   Prior distribution $p_0(\beta_{j,k}^l, \gamma_{j,k}^l)$ for $(\beta_{j,k}^l, \gamma_{j,k}^l)$: $$
-    \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
+    \prod_{k =1, k \neq j}^p \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(\beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^p \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
     $$
 
 ## Calculate the posterior distribution
