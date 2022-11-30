@@ -49,7 +49,7 @@ $x_1, \dots , x_p$.
 }
 ```
 -   The observations may not be identically distributed
--   In this paper they suppose the variability in the graph structure across observations depending on additional covariate information.
+-   In this paper[@origPaper] they suppose the variability in the graph structure across observations depending on additional covariate information.
 -   $X \in \mathbb{R}^{n \times p}$ stands for the data matrix corresponding to $n$ individuals on $p$ variables
 -   Rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$
 -   Columns $x_j \in \mathbb{R}^n$ corresponding the observation for variable $j$
@@ -289,7 +289,7 @@ $$
  Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` and `JGL`packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to increase the specificity of the model without substantially hurting the model's sensitivity and speed.
 }
 ```
--   This model demonstrates superior sensitivity than competing methods
+-   This model demonstrates superior sensitivity than competing methods[@covdepGE]
 -   It suffers from lower specificity
     -   Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL] packages, specificity gets substantially worse with $p$.
 -   For gene expression data, this could lead to worse outcomes than a less sensitive and more specific model
@@ -853,4 +853,6 @@ print(fn_xtable_cluster,
  Isaac
 }
 ```
+-   
+
 ## References
