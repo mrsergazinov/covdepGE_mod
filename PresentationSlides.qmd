@@ -6,7 +6,7 @@ format:
     include-in-header: 
       - preamble.tex
       - text: \usecolortheme[named=tamumaroon]{structure}
-      - text: \setbeameroption{show notes} 
+      - text: \setbeameroption{hide notes} 
     theme: Boadilla
     fonttheme: serif
 bibliography: references.bib
@@ -185,11 +185,10 @@ $$ Next, we put a prior distribution for the coefficient parameters correspondin
 }
 ```
 -   Let $W(z, \mathbf z)$ be the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$.
--   The weighted conditional distribution function can be calculated as 
-\begin{align*}
+-   The weighted conditional distribution function can be calculated as \begin{align*}
     p^w(x_j | X_{-j}, &\beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \\
     &\exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
-\end{align*}
+    \end{align*}
 -   The weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$: $$
     L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
     $$
@@ -863,5 +862,7 @@ print(fn_xtable_cluster,
     -   Contaminating $X$ with an unrelated, independent Gaussian distribution - can max/min scaling help?
 
     -   Sharp Discontinuities in $Z$ - can max/min scaling help?
+
+# Thank you! Questions?
 
 ## References
