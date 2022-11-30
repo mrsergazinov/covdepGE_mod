@@ -32,13 +32,12 @@ library(xtable)
 $x_1, \dots , x_p$.
 }
 ```
-
 -   Undirected graphical models are used to model multivariate distributions.
 -   Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix.
 -   The conditional independence structure of the distribution can be represented with a graph $G$.
 -   Node set $V = (1, \dots, p)$ corresponding to the $p$ variables,
 -   Edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable.
--   **Goal:** estimate the underlying graph $G$ from given $n$ i.d.d. observations $x_1, \dots , x_p$. 
+-   **Goal:** estimate the underlying graph $G$ from given $n$ i.d.d. observations $x_1, \dots , x_p$.
 
 ## Adding Covariates
 
@@ -49,7 +48,6 @@ $x_1, \dots , x_p$.
  Several methods developed under this assumption however, in practice, the observations may not be identically distributed. In this paper they suppose the variability in the graph structure across observations depending on additional covariate information. Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $n$ individuals on $p$ variables. We denote the rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$ and the columns $x_j \in \mathbb{R}^n$.\\ The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, *as a function of some extraneous covariates* $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. 
 }
 ```
-
 -   The observations may not be identically distributed
 -   In this paper they suppose the variability in the graph structure across observations depending on additional covariate information.
 -   $X \in \mathbb{R}^{n \times p}$ stands for the data matrix corresponding to $n$ individuals on $p$ variables
@@ -65,7 +63,6 @@ $x_1, \dots , x_p$.
  The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, *as a function of some extraneous covariates* $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. 
 }
 ```
-
 -   The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, *as a function of some extraneous covariates* $z_i$ corresponding to the samples.
 -   The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar.
 
@@ -84,13 +81,12 @@ $x_1, \dots , x_p$.
 \end{itemize}
 }
 ```
-
 -   Without using covariate information:
     -   These methods depend on the criteria of first splitting the data into homogeneous groups and sharing information withing groups
 -   Adding the covariates into the mean structure of Gaussian graphical models as multiple linear regressions such that the mean is a continuous function of covariates.
     -   This approaches studied from a Bayesian perspective and a frequentist perspective.
     -   Still uses the homogeneous graph structure for all observation
--   Modeling the underlying covariance matrix as a function of the covariates. 
+-   Modeling the underlying covariance matrix as a function of the covariates.
     -   The main difficulty of this approach is to enforce sparsity in the precision matrix while being positive definite
 
 ## The W-PL Approach (Brief Introduction to Pseudo-likelihood approach)
@@ -109,7 +105,6 @@ L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j).
 \end{equation}
 }
 ```
-
 -   Suppose there are $n$ individuals, indexed $i = 1, \dots,n$.
 -   Let $X_i = (x_{i,1}, \dots, x_{i,p})$, which corresponds to the $i$-th individual.
 -   Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$.
@@ -131,15 +126,14 @@ L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j).
 \end{equation}
 }
 ```
-
 -   Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$.
 -   The conditional likelihood of $x_j$ $$
     L(j) = p(x_j | X_{-j}, \beta_j) \propto \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2\right\}
     $$
 -   for a fixed graph $G$ the pseudo-likelihood $L(G)$ $$
     L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
-    $$ 
-    
+    $$
+
 ## The W-PL Approach (Brief Introduction to Pseudo-likelihood approach)
 
 ```{=tex}
@@ -151,7 +145,6 @@ x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\ma
 $$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$.
 }
 ```
-
 -   We now define a weighted version of this conditional likelihood for each individual:
 -   Underlying graph structure is a function of extraneous covariates $z$.
 -   Thus, we allow the coefficient vector $\beta_j$'s to be different for different individuals, depending on the extraneous covariates $z$.
@@ -168,7 +161,6 @@ x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\ma
 $$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$. 
 }
 ```
-
 -   Let $z_i$ denote the covariate vector associated with the $i$-th individual and $\mathbf z = (\mathbf z_1,\dots , \mathbf z_n)$
 -   Define weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf z_l\Vert)$ to every individual
 -   When $z = z_l$ corresponds to the $l$-th individual, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual.
@@ -192,15 +184,14 @@ L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
 $$ Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation 
 }
 ```
-
 -   Let $W(z, \mathbf z)$ be the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$.
 -   The weighted conditional distribution function can be calculated as $$
     p^w(x_j | X_{-j}, \beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
     $$
 -   The weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$: $$
     L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
-    $$ 
-    
+    $$
+
 ## Spike and Slab for Bayesian Approach
 
 ```{=tex}
@@ -213,7 +204,6 @@ p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,
 $$ 
 }
 ```
-
 -   Next we want to put a prior distribution for the coefficient parameters corresponding to the regression problem described before:
 -   Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$: We take a spike-and-slab prior on the parameter $\beta_j^l$: $k \in \{1, \dots, p \}$,
 -   $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$
@@ -230,12 +220,13 @@ p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,
 $$ 
 }
 ```
-
 -   Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$.
+
 -   Prior distribution $p_0(\beta_{j,k}^l, \gamma_{j,k}^l)$ for $(\beta_{j,k}^l, \gamma_{j,k}^l)$: 
 $$
 \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
 $$ 
+
 
 ## Calculate the posterior distribution
 
@@ -250,6 +241,7 @@ $$
 $$
 p(\beta_{j}^l, \gamma_{j}^l | X, Z) \propto \exp \left\{ \sum_{i=1}^n \left(x_{ij} - \sum_{k\neq j} x_{ik}\beta_{j, k}^l \right)^2 w_l(\mathbf{z}_i) \right\}p_0(\beta_{j}^l, \gamma_{j}^l)
 $$
+
 - Unfortunately, the posterior distribution is intractable. 
 - We are going to use variational inference to approximate the posterior distribution.
 
@@ -266,6 +258,7 @@ $$
 $$
 (\phi^l_j)^* = \arg \min_{\phi^l_j} D_{KL} \left[ q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) || p(\beta_{j}^l, \gamma_{j}^l | X, Z) \right]
 $$
+
 - We use the blocked mean-field approach which assumes that the variational distribution is factorized as follows:
 $$
 q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) = \prod_{j\neq k} q_k(\beta_{j, k}^l, \phi^l_{j, k}; \phi^l_{j, k})
@@ -275,6 +268,7 @@ $$
 q_k(\beta_{j, k}^l, \gamma^l_{j, k}; \phi^l_{j, k}) = N(\beta_{j,k}^l;& \mu_{j, k}^l, (s^l_{j, k})^2)^{\gamma^l_{j, k}} \delta_0(\beta^l_{j, k})^{1-\gamma^l_{j, k}}\\
  &(\alpha^l_{j, k})^{\gamma^l_{j, k}} (1 - \alpha^l_{j, k})^{1-\gamma^l_{j, k}}
 \end{align*}
+
 
 ## CAVI Updates
 
@@ -295,6 +289,7 @@ q_k(\beta_{j, k}^l, \gamma^l_{j, k}; \phi^l_{j, k}) = N(\beta_{j,k}^l;& \mu_{j, 
 $$
 \alpha_{j, k}^l = \frac{1}{2}\left( \alpha_{j, k}^l + \alpha_{k, j}^l \right)
 $$
+
 
 ## The False Positive Problem
 
@@ -371,16 +366,15 @@ We'll look at a variety of different modifications to the algorithm in order of 
 ```{=tex}
 \note{Renat}
 ```
+
  - The second approach is to allow for multiple prior inclusion probabilities $\pi$:
     - Separate $\pi$ for each individual;
     - Cluster and assign separate $\pi$ for each cluster.
 -   Pros:
-    -   Theoretically  and intuitevely plausible.
+    -   Theoretically  and intuitively plausible.
 -  Cons:
     -   Requires additional steps (clustering, assigning $\pi$ to each cluster).
     -   May be computationally prohibitive (due to hyper-parameter search for different $\pi$'s).
-
-
 
 # Simulations
 
@@ -390,16 +384,23 @@ We'll look at a variety of different modifications to the algorithm in order of 
 \note{
  Isaac
  The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
- Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
+ Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll call this procedure "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
 }
 ```
 
 ## Min/Max Scaling
 
+What if we used an alternative method of feature scaling than the default normalization?
+
+Define Min-Max scaling of a vector by $f(x) = \frac{x-\min(x)}{\max(x)-\min(x)}$
+
+Rescaling versus Normalization
+
 ```{=tex}
 \note{
  Isaac
  
+ Next, we wanted to consider a different scaling method. 
  We'll try 3 situations; scaling both X and Z, scaling only Z, and scaling only X
  
 }
@@ -415,12 +416,14 @@ We'll look at a variety of different modifications to the algorithm in order of 
 
 }
 ```
-
 ## Oracle Clustering for Multiple $\pi$
+
 ```{=tex}
 \note{Renat}
 ```
+
 Suppose we know the true number of clusters $K$ and the true cluster assignments $C$. This is true in the simulation setting.
+
 ```{r baseline-sims, include=FALSE, cache = TRUE}
 # Utility function for tables
 meanAndSdStr = function(x) {
@@ -524,10 +527,13 @@ print(fn_xtable_oracle,
 ```
 
 ## Hierarchical Clustering for Multiple $\pi$
+
 ```{=tex}
 \note{Renat}
 ```
+
 We can also try empirical clustering approaches. 
+
 ```{r clustered-sims, include=FALSE, cache = TRUE}
 k_vec = c(2, 3, 6) %>% as.character()
 load("cluster_results.Rda")
@@ -577,6 +583,7 @@ print(fp_xtable_cluster,
 ```
 
 ## Hierarchical Clustering for Multiple $\pi (cont.)$
+
 ```{=tex}
 \note{Renat}
 ```
@@ -614,7 +621,6 @@ print(fn_xtable_cluster,
  Isaac
 }
 ```
-
 ## Why does Min/Max + Normalization Succeed?
 
 ```{=tex}
@@ -622,7 +628,6 @@ print(fn_xtable_cluster,
  Isaac
 }
 ```
-
 ## Why does Multiple $\pi$ Values Fail?
 
 ```{=tex}
@@ -632,8 +637,17 @@ print(fn_xtable_cluster,
 ```
 
 - Overfitting to the data.
-    - We see that the fase negatives go down as the number of clusters goes up.
+    - We see that the fasle negatives go down as the number of clusters goes up.
     - On the other hand, the false positives go up as the number of clusters goes up.
     - This is because the number of clusters is increasing the number of parameters in the model.
+
+
+## Additional Experiments to Try
+
+```{=tex}
+\note{
+ Isaac
+}
+```
 
 ## References
