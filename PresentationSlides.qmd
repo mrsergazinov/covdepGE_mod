@@ -851,8 +851,15 @@ print(fn_xtable_cluster,
 ```{=tex}
 \note{
  Isaac
+ In order to verify our results, there are a few more experiments we want to try running. In particular, we want to see whether we can break the Gaussian assumption of our true data generating function. The hope is that the scaling on $X$ will improve the model's robustness to a distribution with fatter tails such as a $t$ distribution with low degrees of freedom. Similarly, we want to try adding a small percentage of 'contaminated' observations who are drawn from an unrelated, independent Gaussian distribution to the one we are trying to work with. We again hope that the additional scaling we do can help combat the effects of the bad data. Finally, we want to see if we can use the additional scaling of $Z$ to account for potential non-smoothness; for example if $Z$ was double exponentially distributed.
 }
 ```
--   
+-   Model Mispecification
+
+    -   Injecting non-Gaussianity into $X$ - does the scaling improve model robustness?
+
+    -   Contaminating $X$ with an unrelated, independent Gaussian distribution - can max/min scaling help?
+
+    -   Sharp Discontinuities in $Z$ - can max/min scaling help?
 
 ## References
