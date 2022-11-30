@@ -162,7 +162,7 @@ $$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \math
 }
 ```
 -   Let $z_i$ denote the covariate vector associated with the $i$-th individual and $\mathbf z = (\mathbf z_1,\dots , \mathbf z_n)$
--   Define weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − z_l\Vert)$ to every individual
+-   Define weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − z_i\Vert)$ to every individual
 -   When $z = z_l$ corresponds to the $l$-th individual, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual.
 -   **Proposed conditional working model:** for $i = 1, \dots ,n$, $$
     x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\mathbf z_i ))
