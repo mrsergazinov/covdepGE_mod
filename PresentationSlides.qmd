@@ -222,11 +222,9 @@ $$
 ```
 -   Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$.
 
--   Prior distribution $p_0(\beta_{j,k}^l, \gamma_{j,k}^l)$ for $(\beta_{j,k}^l, \gamma_{j,k}^l)$: 
-$$
-\prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
-$$ 
-
+-   Prior distribution $p_0(\beta_{j,k}^l, \gamma_{j,k}^l)$ for $(\beta_{j,k}^l, \gamma_{j,k}^l)$: $$
+    \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l}.
+    $$
 
 ## Calculate the posterior distribution
 
@@ -235,15 +233,14 @@ $$
     Renat
      
     }
-```  
+```
+-   The full posterior is then given by: $$
+    p(\beta_{j}^l, \gamma_{j}^l | X, Z) \propto \exp \left\{ \sum_{i=1}^n \left(x_{ij} - \sum_{k\neq j} x_{ik}\beta_{j, k}^l \right)^2 w_l(\mathbf{z}_i) \right\}p_0(\beta_{j}^l, \gamma_{j}^l)
+    $$
 
-- The full posterior is then given by:
-$$
-p(\beta_{j}^l, \gamma_{j}^l | X, Z) \propto \exp \left\{ \sum_{i=1}^n \left(x_{ij} - \sum_{k\neq j} x_{ik}\beta_{j, k}^l \right)^2 w_l(\mathbf{z}_i) \right\}p_0(\beta_{j}^l, \gamma_{j}^l)
-$$
+-   Unfortunately, the posterior distribution is intractable.
 
-- Unfortunately, the posterior distribution is intractable. 
-- We are going to use variational inference to approximate the posterior distribution.
+-   We are going to use variational inference to approximate the posterior distribution.
 
 ## CAVI Updates
 
@@ -253,22 +250,18 @@ $$
     
 }
 ```
+-   Recall that the variational inference can be formulated as: $$
+    (\phi^l_j)^* = \arg \min_{\phi^l_j} D_{KL} \left[ q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) || p(\beta_{j}^l, \gamma_{j}^l | X, Z) \right]
+    $$
 
--   Recall that the variational inference can be formulated as:
-$$
-(\phi^l_j)^* = \arg \min_{\phi^l_j} D_{KL} \left[ q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) || p(\beta_{j}^l, \gamma_{j}^l | X, Z) \right]
-$$
+-   We use the blocked mean-field approach which assumes that the variational distribution is factorized as follows: $$
+    q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) = \prod_{j\neq k} q_k(\beta_{j, k}^l, \phi^l_{j, k}; \phi^l_{j, k})
+    $$
 
-- We use the blocked mean-field approach which assumes that the variational distribution is factorized as follows:
-$$
-q(\beta_{j}^l, \gamma_{j}^l | \phi^l_j) = \prod_{j\neq k} q_k(\beta_{j, k}^l, \phi^l_{j, k}; \phi^l_{j, k})
-$$
-- Further for each factor $q_k$ of the variational distribution we assume individual spike-and-slab density:
-\begin{align*}
-q_k(\beta_{j, k}^l, \gamma^l_{j, k}; \phi^l_{j, k}) = N(\beta_{j,k}^l;& \mu_{j, k}^l, (s^l_{j, k})^2)^{\gamma^l_{j, k}} \delta_0(\beta^l_{j, k})^{1-\gamma^l_{j, k}}\\
- &(\alpha^l_{j, k})^{\gamma^l_{j, k}} (1 - \alpha^l_{j, k})^{1-\gamma^l_{j, k}}
-\end{align*}
-
+-   Further for each factor $q_k$ of the variational distribution we assume individual spike-and-slab density: \begin{align*}
+    q_k(\beta_{j, k}^l, \gamma^l_{j, k}; \phi^l_{j, k}) = N(\beta_{j,k}^l;& \mu_{j, k}^l, (s^l_{j, k})^2)^{\gamma^l_{j, k}} \delta_0(\beta^l_{j, k})^{1-\gamma^l_{j, k}}\\
+     &(\alpha^l_{j, k})^{\gamma^l_{j, k}} (1 - \alpha^l_{j, k})^{1-\gamma^l_{j, k}}
+    \end{align*}
 
 ## CAVI Updates
 
@@ -278,18 +271,14 @@ q_k(\beta_{j, k}^l, \gamma^l_{j, k}; \phi^l_{j, k}) = N(\beta_{j,k}^l;& \mu_{j, 
     
 }
 ```
-
-- Deriving the ELBO based on the assumed variational distribution and taking partial derivatives with respect to the variational parameters we obtain the following CAVI updates:
-\begin{align*}
-    (s_{j, k}^l)^2 &= \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)} \\
-    \mu_{j, k}^l &= \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left\{ w_l(\mathbf z_i)x_{ik} \left(x_{ij} - \sum_{m\neq j, k}x_{im}\mu_{j, m}^l \alpha_{j,m}^l \right)  \right\} \\
-    \text{logit}(\alpha_{j, k}^l) &= \text{logit}( \pi) + \left( \frac{\mu_{j, k}^l}{ \sqrt{2} s_{j, k}^l} \right)^2 + \log \frac{s_{j, k}^l}{\sigma \sigma_\beta} \\
-\end{align*}
-- The resulting inclusion probabilities $\alpha_{j, k}^l$ are symmetrized to obtain valid graphical model as:
-$$
-\alpha_{j, k}^l = \frac{1}{2}\left( \alpha_{j, k}^l + \alpha_{k, j}^l \right)
-$$
-
+-   Deriving the ELBO based on the assumed variational distribution and taking partial derivatives with respect to the variational parameters we obtain the following CAVI updates: \begin{align*}
+      (s_{j, k}^l)^2 &= \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)} \\
+      \mu_{j, k}^l &= \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left\{ w_l(\mathbf z_i)x_{ik} \left(x_{ij} - \sum_{m\neq j, k}x_{im}\mu_{j, m}^l \alpha_{j,m}^l \right)  \right\} \\
+      \text{logit}(\alpha_{j, k}^l) &= \text{logit}( \pi) + \left( \frac{\mu_{j, k}^l}{ \sqrt{2} s_{j, k}^l} \right)^2 + \log \frac{s_{j, k}^l}{\sigma \sigma_\beta} \\
+    \end{align*}
+-   The resulting inclusion probabilities $\alpha_{j, k}^l$ are symmetrized to obtain valid graphical model as: $$
+    \alpha_{j, k}^l = \frac{1}{2}\left( \alpha_{j, k}^l + \alpha_{k, j}^l \right)
+    $$
 
 ## The False Positive Problem
 
@@ -300,7 +289,6 @@ $$
  Despite this model demonstrating superior sensitivity to true dependence relations than competing methods, it suffers from lower specificity. Compared with competing methods from the `mgm` and `JGL`packages, the specificity gets substantially worse as the number of features increases. In the case of analyzing gene expression data, this could lead to worse outcomes than a less sensitive and more specific model since the cost of carrying out experiments which show a lack of a predicted relation may be very expensive. Further, validating a true but relatively weak relationship may not be desirable considering the cost. Ideally we want to increase the specificity of the model without substantially hurting the model's sensitivity and speed.
 }
 ```
-
 -   This model demonstrates superior sensitivity than competing methods
 -   It suffers from lower specificity
     -   Compared with competing methods from the `mgm` [@mgm] and `JGL` [@JGL] packages, specificity gets substantially worse with $p$.
@@ -340,7 +328,6 @@ We'll look at a variety of different modifications to the algorithm in order of 
 \caption{Comparison of existing methodologies} 
 \end{table}
 ```
-
 # Attempted Solutions
 
 ## Feature & Covariate Scaling
@@ -351,11 +338,10 @@ We'll look at a variety of different modifications to the algorithm in order of 
 
 }
 ```
-
 -   We believe the underlying cause of the false positive problem is having the same prior inclusion probability $\pi$ across all spike-and-slab regressions.
 -   The first modification we'll make is to scale the features and covariates. The idea is that by scaling the features and covariates, we can make a common prior $\pi$ a more reasonable choice.
-    - Min-max scaling ($\sim U(0, 1)$),
-    - Standardization ($\sim N(0, 1)$).
+    -   Min-max scaling ($\sim U(0, 1)$),
+    -   Standardization ($\sim N(0, 1)$).
 -   Pros:
     -   Easy to implement.
     -   No changes to the inference algorithm.
@@ -363,66 +349,21 @@ We'll look at a variety of different modifications to the algorithm in order of 
     -   Ad-hoc solution.
 
 ## Multiple Prior Inclusion Probabilities
-```{=tex}
-\note{Renat}
-```
 
- - The second approach is to allow for multiple prior inclusion probabilities $\pi$:
-    - Separate $\pi$ for each individual;
-    - Cluster and assign separate $\pi$ for each cluster.
+\note{Renat}
+
+-   The second approach is to allow for multiple prior inclusion probabilities $\pi$:
+    -   Separate $\pi$ for each individual;
+    -   Cluster and assign separate $\pi$ for each cluster.
 -   Pros:
-    -   Theoretically  and intuitively plausible.
--  Cons:
+    -   Theoretically and intuitively plausible.
+-   Cons:
     -   Requires additional steps (clustering, assigning $\pi$ to each cluster).
     -   May be computationally prohibitive (due to hyper-parameter search for different $\pi$'s).
 
 # Simulations
 
 ## Normalization (Baseline)
-
-```{=tex}
-\note{
- Isaac
- The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
- Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll call this procedure "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
-}
-```
-
-## Min/Max Scaling
-
-What if we used an alternative method of feature scaling than the default normalization?
-
-Define Min-Max scaling of a vector by $f(x) = \frac{x-\min(x)}{\max(x)-\min(x)}$
-
-Rescaling versus Normalization
-
-```{=tex}
-\note{
- Isaac
- 
- Next, we wanted to consider a different scaling method. 
- We'll try 3 situations; scaling both X and Z, scaling only Z, and scaling only X
- 
-}
-```
-
-## Combination of Scaling \\& Normalization
-
-```{=tex}
-\note{
- Isaac
- 
- First do a max-min transform to scale, then do the z-transform (or mean 0 center transform in the case of X)
-
-}
-```
-## Oracle Clustering for Multiple $\pi$
-
-```{=tex}
-\note{Renat}
-```
-
-Suppose we know the true number of clusters $K$ and the true cluster assignments $C$. This is true in the simulation setting.
 
 ```{r baseline-sims, include=FALSE, cache = TRUE}
 # Utility function for tables
@@ -469,12 +410,12 @@ false_negatives_baseline = results_original %>%
 fp_baseline_str = false_positives_baseline %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Baseline Mean (sd)" = string)
+  rename("Baseline FPs (sd)" = string)
 
 fn_baseline_str = false_negatives_baseline %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Baseline Mean (sd)" = string)
+  rename("Baseline FNs (sd)" = string)
 
 fp_xtable_baseline = fp_baseline_str %>%
   cbind(p, n, .) %>%
@@ -486,8 +427,256 @@ fn_xtable_baseline = fn_baseline_str %>%
   tibble() %>%
   xtable("False \\textbf{negatives} per sample - Normalized Z, Centered X")
 
+combo_xtable_baseline = cbind(p, n, fp_baseline_str, fn_baseline_str) %>%
+  tibble() %>% 
+  xtable("False Positives and False Negatives per sample - Normalized Z, Centered X")
+  
 rm(results_original)
 ```
+
+```{=tex}
+\note{
+ Isaac
+ The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
+ Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll call this procedure "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
+}
+```
+-   For each covariate, apply a Z-transform
+    -   $z(Z) = \frac{Z-\bar{Z}}{\sigma_Z}$
+-   For each variable, center at 0
+    -   $c(X) = X - \bar{X}$
+-   Simulations are replicated 100 times each
+
+```{r print-baseline-xtable, results='asis', echo=FALSE}
+print(combo_xtable_baseline, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+## Min/Max Scaling
+
+-   What if we used an alternative method of feature scaling than the default normalization?
+
+-   Define Min-Max scaling of a vector by $f(x) = \frac{x-\min(x)}{\max(x)-\min(x)}$
+
+-   Rescaling versus Normalization
+
+```{=tex}
+\note{
+ Isaac
+ 
+ Next, we wanted to consider a different scaling method. 
+ We tried 3 situations; applying min-max scaling columnwise to both X and Z, only Z, and only X.
+ Notably, a major difference between Z-score normalization and 'range scaling' is that we aren't changing the shape of the distribution. However, we do still condense the range of the variables to be within [0,1]. It's also worth noting that this approach is not robust to outliers, but for our simulation examples this isn't considered.
+ 
+Unfortunately, applying only a Max-Min scaling to any of these setups is ineffective. When we apply this scaling to X, we do get a perfect false positive rate; but only because it fails to include any edges at all. Using the raw X and a scaled Z leads to uniformly worse sensitivity and specificity.
+ 
+}
+```
+```{r min-max-only-sims, include=FALSE, cache = TRUE}
+load("minmax_Z_sim.Rda")
+
+fp_xtable_mmZ = min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM on Z" = string) 
+
+fn_xtable_mmZ = min_max_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM on Z" = string) 
+
+rm(min_max_Z_simulation_results)
+
+load("minmax_X_sim.Rda")
+
+fp_xtable_mmX = min_max_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM on X" = string) 
+
+fn_xtable_mmX = min_max_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM on X" = string) 
+
+rm(min_max_X_simulation_results)
+
+load("minmax_XZ_sim.Rda")
+
+fp_xtable_mmXZ = min_max_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM on Z, X" = string) 
+
+fn_xtable_mmXZ = min_max_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM on Z, X" = string) 
+
+combo_xtable_fp_mm = cbind(p, n, fp_baseline_str, fp_xtable_mmZ, fp_xtable_mmX, fp_xtable_mmXZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max Min Scaling only; (sd)")
+
+combo_xtable_fn_mm = cbind(p, n, fn_baseline_str, fn_xtable_mmZ, fn_xtable_mmX, fn_xtable_mmXZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max Min Scaling only; (sd)")
+
+rm(min_max_XZ_simulation_results)
+```
+
+------------------------------------------------------------------------
+
+```{r print-mm-only-xtable, results='asis', echo=FALSE}
+print(combo_xtable_fp_mm, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(combo_xtable_fn_mm, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+## Combination of Scaling & Normalization
+
+```{=tex}
+\note{
+ Isaac
+ 
+ So, what if we could get the best of both worlds?
+ First do a max-min transform to scale, then do the z-transform (or mean 0 center transform in the case of X). This way we are still dealing with nice Gaussian distributions after the transformations, but gain some control over the range of X.
+ 
+ As it turns out, this works and ended up being our best result. In particular, doing this procedure on both X and Z was best overall and resulted in slightly better specificity and little change in sensitivity
+}
+```
+-   Can we get the best of both worlds?
+
+-   Max-min transform followed by Z-transform
+
+    -   $\tilde{Z} = (z \circ f)(Z)$
+
+-   Max-min transform followed by 0-centering
+
+    -   $\tilde{X} = (c \circ f)(X)$
+
+```{r min-max-norm-sims, include=FALSE, cache = TRUE}
+load("minmax_norm_Z_sim.Rda")
+
+fp_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM/N Z" = string)
+
+fn_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM/N Z" = string)
+
+rm(min_max_norm_Z_simulation_results)
+
+load("minmax_norm_X_sim.Rda")
+
+fp_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM/N X" = string)
+
+fn_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM/N X" = string)
+
+rm(min_max_norm_X_simulation_results)
+
+load("minmax_norm_XZ_sim.Rda")
+
+fp_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FP_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM/N Z, X" = string)
+
+fn_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
+  map(function(x)
+    map_dbl(x, pluck, "FN_n")
+  ) %>% 
+  map_chr(meanAndSdStr) %>% 
+  data.frame(string = .) %>%
+  rename("MM/N Z, X" = string)
+
+rm(min_max_norm_XZ_simulation_results)
+
+combo_xtable_fp_mm = cbind(p, n, 
+                           fp_baseline_str, 
+                           fp_xtable_mmnorm_Z, 
+                           fp_xtable_mmnorm_X, 
+                           fp_xtable_mmnorm_XZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max Min Scaling + Normalization; (sd)")
+
+combo_xtable_fn_mm = cbind(p, n, 
+                           fn_baseline_str, 
+                           fn_xtable_mmnorm_Z, 
+                           fn_xtable_mmnorm_X, 
+                           fn_xtable_mmnorm_XZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max Min Scaling + Normalization; (sd)")
+```
+
+------------------------------------------------------------------------
+
+```{r print-mm-norm-xtable, results='asis', echo=FALSE}
+print(combo_xtable_fp_mm, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(combo_xtable_fn_mm, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+
+```
+
+## Oracle Clustering for Multiple $\pi$
+
+\note{Renat}
+
+Suppose we know the true number of clusters $K$ and the true cluster assignments $C$. This is true in the simulation setting.
+
 ```{r oracle-sims, include=FALSE, cache = TRUE}
 load("oracle_results.Rda")
 
@@ -515,6 +704,7 @@ fn_xtable_oracle = oracle_results %>%
 
 rm(oracle_results)
 ```
+
 ```{r print-oracle-xtable, results='asis', echo=FALSE}
 print(fp_xtable_oracle, 
       comment=FALSE, 
@@ -528,11 +718,9 @@ print(fn_xtable_oracle,
 
 ## Hierarchical Clustering for Multiple $\pi$
 
-```{=tex}
 \note{Renat}
-```
 
-We can also try empirical clustering approaches. 
+We can also try empirical clustering approaches.
 
 ```{r clustered-sims, include=FALSE, cache = TRUE}
 k_vec = c(2, 3, 6) %>% as.character()
@@ -584,9 +772,8 @@ print(fp_xtable_cluster,
 
 ## Hierarchical Clustering for Multiple $\pi (cont.)$
 
-```{=tex}
 \note{Renat}
-```
+
 ```{r print-cluster-xtable-fn, results='asis', echo=FALSE}
 print(fn_xtable_cluster, 
       comment=FALSE, 
@@ -611,23 +798,42 @@ print(fn_xtable_cluster,
  We experimented with giving every observation its own prior inclusion probability by specifying the cluster mapping as $\{1,2,...,n\}$ however the simulations became computationally unfeasible due to the dimension of the parameter space being grid searched over scaling linearly with $n$. After multiple days of running the simulation crashed due to excessive memory consumption (>32GB). Based on the previous results with the oracle clustering and hierarchical clustering, and a much smaller example with $p =5, n = 10$, we believe it highly unlikely that having a different prior inclusion probability for every observation would improve the false positive rate.
 }
 ```
-
 # Discussions
 
-## Why does Min/Max Alone Fail?
+## Why does Max/Min Alone Fail?
 
 ```{=tex}
 \note{
  Isaac
+ We believe that the max min scaling alone performs very badly because the assumptions of our algorithm are violated. In particular, our $X$ is not zero-mean Gaussian and we aren't correcting for this fact (and are even making it worse when we move it to always be positively centered). And since max min is not robust to outliers, and our true Z is generated from uniform distributions, rescaling is likely only going to cause us to capture less information about how the conditional dependency is scaling with Z.
 }
 ```
-## Why does Min/Max + Normalization Succeed?
+-   Our assumptions are being violated:
+
+    -   Realizations of $X$ may not quite be zero-mean Gaussian and we are not correcting for this
+
+    -   Max-Min scaling on $X$ exacerbates this issue by constantly centering at a positive value
+
+    -   Max-Min scaling is not robust to outliers, so our scaled $Z$ is inconsistent and the weighting function performs poorly
+
+## Why does Max/Min + Normalization Succeed?
 
 ```{=tex}
 \note{
  Isaac
+ We believe that max min scaling combined with the Z-tranform on covariates and centering on variables works because we are able to control the range of $X$ without having to affect the shapes of the distributions involved. And, we are still controlling the shape of $Z$ so our weight function should perform well.
 }
 ```
+-   Doesn't require distributional changes
+
+    -   It isn't a major change over the baseline, assumptions are unchanged
+
+-   Gives control over the range of variables in $X$ without affecting its shape
+
+    -   Tightening the range of $X$ may make the assumption of a common prior inclusion probability more reasonable
+
+-   Still allows for controlling the shape of $Z$ for good weight performance, and normalization helps with outlier robustness
+
 ## Why does Multiple $\pi$ Values Fail?
 
 ```{=tex}
@@ -635,12 +841,10 @@ print(fn_xtable_cluster,
     Renat
 }
 ```
-
-- Overfitting to the data.
-    - We see that the fasle negatives go down as the number of clusters goes up.
-    - On the other hand, the false positives go up as the number of clusters goes up.
-    - This is because the number of clusters is increasing the number of parameters in the model.
-
+-   Overfitting to the data.
+    -   We see that the false negatives go down as the number of clusters goes up.
+    -   On the other hand, the false positives go up as the number of clusters goes up.
+    -   This is because the number of clusters is increasing the number of parameters in the model.
 
 ## Additional Experiments to Try
 
@@ -649,5 +853,4 @@ print(fn_xtable_cluster,
  Isaac
 }
 ```
-
 ## References
