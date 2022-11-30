@@ -116,7 +116,7 @@ L(G) = \prod_{j =1}^p L(j) = \prod_{j =1}^p p(x_j | X_{-j}, \beta_j).
 \note{
  Gozde
  
-Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as 
+Let the $(p − 1)$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as 
 \begin{equation}
 L(j) = p(x_j | X_{-j}, \beta_j) \propto \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
 \end{equation} 
@@ -126,7 +126,7 @@ L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j).
 \end{equation}
 }
 ```
--   Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$.
+-   Let the $(p − 1)$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$.
 -   The conditional likelihood of $x_j$ $$
     L(j) = p(x_j | X_{-j}, \beta_j) \propto \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2\right\}
     $$
