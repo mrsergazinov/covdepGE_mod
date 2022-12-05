@@ -1,0 +1,509 @@
+---
+title: "Robustness Experiments"
+format: pdf
+editor: visual
+---
+
+```{r setup, include = FALSE}
+library(covdepGE)
+library(tidyverse)
+library(purrr)
+library(Matrix)
+library(xtable)
+library(mvtnorm)
+p = c(5, 15, 25, 50)
+n = c(90, 90, 150, 150)
+```
+
+```{r sim-functions, include=FALSE}
+eval_est <- function(est, true){
+
+  # get n
+  n <- dim(est)[3]
+
+  # get true number of edges and non-edges
+  num_edge <- sum(true, na.rm = T)
+  num_non <- sum(true == 0, na.rm = T)
+
+  # calculate sensitivity, specificity, etc.
+  true_edge <- sum(est == 1 & true == 1, na.rm = T)
+  false_edge <- sum(est == 1 & true == 0, na.rm = T)
+  true_non <- sum(est == 0 & true == 0, na.rm = T)
+  false_non <- sum(est == 0 & true == 1, na.rm = T)
+  sens <- true_edge / num_edge
+  spec <- true_non / num_non
+
+  list(sens = sens, spec = spec, TP_n = true_edge / n, FP_n = false_edge / n,
+       TN_n = true_non / n, FN_n = false_non / n)
+}
+
+# function to turn an array into a list of sparse matrices
+sp.array <- function(arr, n){
+  lapply(1:n, function(l) Matrix::Matrix(arr[ , , l], sparse = T))
+}
+
+covdepGE.eval <- function(X, Z, true, n_workers, transforms = TRUE, pip_assgn = NULL){
+
+  start <- Sys.time()
+
+  # get dimensions of the data and fit covdepGE
+  n <- nrow(X)
+  p <- ncol(X)
+  if(transforms){
+    out <- covdepGE(X = X,
+                  Z = Z,
+                  parallel = T,
+                  num_workers = n_workers,
+                  pip_assgn = pip_assgn)
+  } else {
+    out <- covdepGE(X = X,
+                  Z = Z,
+                  parallel = T,
+                  num_workers = n_workers,
+                  center_X = FALSE,
+                  scale_Z = FALSE,
+                  pip_assgn = pip_assgn)
+  }
+  
+
+  # record time and get the array of graphs
+  out$time <- as.numeric(Sys.time() - start, units = "secs")
+  out$str <- array(unlist(out$graphs$graphs), dim = c(p, p, n))
+
+  # covert the unique graphs to a sparse array
+  out$unique_graphs <- out$graphs$unique_graphs
+  for (k in 1:length(out$unique_graphs)){
+    out$unique_graphs[[k]]$graph <- Matrix::Matrix(
+      out$unique_graphs[[k]]$graph, sparse = T)
+  }
+
+  # remove large objects, put the unique graphs back in the graphs sublist
+  out$variational_params <- out$graphs <- out$weights <- NULL
+  out$graphs$unique_graphs <- out$unique_graphs
+  out$unique_graphs <- NULL
+
+  # get performance, convert graphs to a sparse array, and return
+  perf <- eval_est(out$str, true)
+  out[names(perf)] <- perf
+  out$str <- sp.array(out$str, n)
+  message("\ncovdepGE complete ", Sys.time(), "\n")
+  out
+}
+
+simulation_func = function(n_trials, 
+                           data_list, 
+                           num_workers, 
+                           normalize,
+                           pip_assgn = NULL) {
+  
+  results <- vector("list", n_trials)
+  names(results) <- c(paste0("trial", 1:n_trials))
+  pb <- txtProgressBar(0, n_trials, style = 3)
+  
+  
+  for (j in 1:n_trials) {
+
+  # record the time the trial started
+  trial_start <- Sys.time()
+
+  # get the data
+  data <- data_list[[j]]
+    n = nrow(data$X)
+    p = ncol(data$X)
+
+  # convert the true precision to an array and then to a graph; mask diagonal
+  prec <- array(unlist(data$true_precision), c(p, p, n))
+  graph <- (prec != 0) * 1 + replicate(n, diag(rep(NA, p)) * 1)
+
+  # fit covdepGE
+  out_covdepGE <- tryCatch(covdepGE.eval(X = data$X,
+                                         Z = data$Z,
+                                         true = graph,
+                                         n_workers = num_workers,
+                                         transforms = normalize,
+                                         pip_assgn = pip_assgn),
+                           error = function(e) list(error = e))
+  if (!is.null(out_covdepGE$error)) message(out_covdepGE$error)
+
+  # save the trial and update the progress bar
+  results[[j]] <- out_covdepGE
+  setTxtProgressBar(pb, j)
+  }
+  return(results)
+}
+
+```
+
+In order to verify our results, there are a few more experiments we want to try running. In particular, we want to see whether we can break the Gaussian assumption of our true data generating function. The hope is that the scaling on $X$ will improve the model's robustness to a distribution with fatter tails such as a $t$ distribution with low degrees of freedom. Similarly, we want to try adding a small percentage of 'contaminated' observations who are drawn from an unrelated, independent Gaussian distribution to the one we are trying to work with. We again hope that the additional scaling we do can help combat the effects of the bad data. Finally, we want to see if we can use the additional scaling of $Z$ to account for potential non-smoothness; for example if $Z$ was double exponentially distributed.
+
+## Contamination - Gaussian
+
+First, we'll consider the case that a proportion of our observations' true data-generating function is just noise; that is, $X_{\textrm{contaminated}} \sim N(0, I)$. Notably, it doesn't depend on $Z$ at all.
+
+
+
+```{r bad-gaussian-data-gen-func, echo=FALSE}
+generateData1 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
+                         true_precision = NULL,
+                         prop_contam = 0.03){
+
+  # create covariate for observations in each of the three intervals
+
+  # define number of samples
+  n <- ifelse(is.null(true_precision), sum(n1, n2, n3), length(true_precision))
+  
+  # define number of samples to be contaminated
+  n_contam = floor(n*prop_contam)
+  
+  # define indices to contaminate
+  idx_contam = sample(1:n, n_contam, replace = FALSE)
+
+  # define the intervals
+  limits1 <- c(-3, -1)
+  limits2 <- c(-1, 1)
+  limits3 <- c(1, 3)
+
+  # if Z and true_precision have not been provided, generate Z
+  interval <- NULL
+  if (is.null(Z) & is.null(true_precision)){
+
+    # define the interval labels
+    interval <- c(rep(1, n1), rep(2, n2), rep(3, n3))
+
+    # draw the covariate values within each interval
+    z1 <- sort(stats::runif(n1, limits1[1], limits1[2]))
+    z2 <- sort(stats::runif(n2, limits2[1], limits2[2]))
+    z3 <- sort(stats::runif(n3, limits3[1], limits3[2]))
+    Z <- matrix(c(z1, z2, z3), n, 1)
+  }else if(!is.null(Z) & is.null(true_precision)){
+
+    # Z has been provided and true_precision has not
+    # divide Z into the 3 intervals
+    interval <- as.integer(cut(Z, c(-Inf, -1, 1, Inf), labels = 1:3))
+    z1 <- Z[interval == 1]
+    z2 <- Z[interval == 2]
+    z3 <- Z[interval == 3]
+
+    # get the sample size in each of the intervals
+    n1 <- length(z1)
+    n2 <- length(z2)
+    n3 <- length(z3)
+  }else if(!is.null(Z) & !is.null(true_precision)){
+
+    # Z and true_precision have been provided
+    stop("Z and true_precision cannot both be provided")
+  }
+
+  # if they have not been provided, create the precision matrices
+  if (is.null(true_precision)){
+
+    # the shared part of the structure for all three intervals is a 2 on the
+    # diagonal and a 1 in the (2, 3) position
+    common_str <- diag(p)
+    common_str[2, 3] <- 1
+
+    # define constants for the structure of interval 2
+    beta1 <- diff(limits2)^-1
+    beta0 <- -limits2[1] * beta1
+
+    # interval 2 has two different linear functions of Z in the (1, 2) position
+    # and (1, 3) positions; define structures for each of these components
+    int2_str12 <- int2_str13 <- matrix(0, p, p)
+    int2_str12[1, 2] <- int2_str13[1, 3] <- 1
+
+    # define the precision matrices for each of the observations in interval 2
+    int2_prec <- lapply(z2, function(z) common_str +
+                          ((1 - beta0 - beta1 * z) * int2_str12) +
+                          ((beta0 + beta1 * z) * int2_str13))
+
+    # interval 1 has a 1 in the (1, 2) position and interval 3 has a 1 in the
+    # (1, 3) position; define structures for each of these components
+    int1_str12 <- int3_str13 <- matrix(0, p, p)
+    int1_str12[1, 2] <- int3_str13[1, 3] <- 1
+
+    # define the precision matrices for each of the observations in interval 1
+    # and interval 3
+    int1_prec <- rep(list(common_str + int1_str12), n1)
+    int3_prec <- rep(list(common_str + int3_str13), n3)
+
+    # put all of the precision matrices into one list
+    prec_mats <- c(int1_prec, int2_prec, int3_prec)
+
+    # symmetrize the precision matrices
+    true_precision <- lapply(prec_mats, function(mat) t(mat) + mat)
+  }
+  
+  # contaminate the identified precision matrices
+  true_precision[idx_contam] = diag(p)
+
+  # invert the precision matrices to get the covariance matrices
+  cov_mats <- lapply(true_precision, solve)
+
+  # generate the data using the covariance matrices
+  data_mat <- t(sapply(cov_mats, MASS::mvrnorm, n = 1, mu = rep(0, p)))
+
+  return(list(X = data_mat, Z = Z, true_precision = true_precision,
+              interval = interval))
+}
+```
+
+```{r bad-gaussian-data-gen, cache = TRUE, echo=FALSE}
+set.seed(2468)
+n_trials = 100
+
+simulation_list_bad_gaussian_5perc = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData1(p, nj, nj, nj, prop_contam = 0.05), F)
+})
+simulation_list_bad_gaussian_10perc = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData1(p, nj, nj, nj, prop_contam = 0.10), F)
+})
+simulation_list_bad_gaussian_25perc = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData1(p, nj, nj, nj, prop_contam = 0.25), F)
+})
+```
+
+## Contamination - Non-Gaussian
+
+Next, we'll consider the case that a proportion of our observations' true data-generating function is coming from a multivariate $t$ distribution with $\nu$ degrees of freedom (which we'll restrict to $\nu > 2$. When generating this data, we'll use the covariance matrix $\Sigma$ obtained from $Z$ to instead specify the *scale* matrix of our multivariate $t$ distribution, with the relationship that the true covariance matrix of these $t$ distributed variables is $\Sigma_{t} = \Sigma * \nu/(\nu-2)$
+
+```{r non-gaussian-data-gen-func, echo=FALSE}
+generateData2 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
+                         true_precision = NULL,
+                         mvt_df = 3,
+                         prop_contam = 0.03){
+
+  # create covariate for observations in each of the three intervals
+
+  # define number of samples
+  n <- ifelse(is.null(true_precision), sum(n1, n2, n3), length(true_precision))
+
+  # define number of samples to be contaminated
+  n_contam = floor(n*prop_contam)
+  
+  # define indices to contaminate
+  idx_contam = sample(1:n, n_contam, replace = FALSE)
+  
+  # define the intervals
+  limits1 <- c(-3, -1)
+  limits2 <- c(-1, 1)
+  limits3 <- c(1, 3)
+
+  # if Z and true_precision have not been provided, generate Z
+  interval <- NULL
+  if (is.null(Z) & is.null(true_precision)){
+
+    # define the interval labels
+    interval <- c(rep(1, n1), rep(2, n2), rep(3, n3))
+
+    # draw the covariate values within each interval
+    z1 <- sort(stats::runif(n1, limits1[1], limits1[2]))
+    z2 <- sort(stats::runif(n2, limits2[1], limits2[2]))
+    z3 <- sort(stats::runif(n3, limits3[1], limits3[2]))
+    Z <- matrix(c(z1, z2, z3), n, 1)
+  }else if(!is.null(Z) & is.null(true_precision)){
+
+    # Z has been provided and true_precision has not
+    # divide Z into the 3 intervals
+    interval <- as.integer(cut(Z, c(-Inf, -1, 1, Inf), labels = 1:3))
+    z1 <- Z[interval == 1]
+    z2 <- Z[interval == 2]
+    z3 <- Z[interval == 3]
+
+    # get the sample size in each of the intervals
+    n1 <- length(z1)
+    n2 <- length(z2)
+    n3 <- length(z3)
+  }else if(!is.null(Z) & !is.null(true_precision)){
+
+    # Z and true_precision have been provided
+    stop("Z and true_precision cannot both be provided")
+  }
+
+  # if they have not been provided, create the precision matrices
+  if (is.null(true_precision)){
+
+    # the shared part of the structure for all three intervals is a 2 on the
+    # diagonal and a 1 in the (2, 3) position
+    common_str <- diag(p)
+    common_str[2, 3] <- 1
+
+    # define constants for the structure of interval 2
+    beta1 <- diff(limits2)^-1
+    beta0 <- -limits2[1] * beta1
+
+    # interval 2 has two different linear functions of Z in the (1, 2) position
+    # and (1, 3) positions; define structures for each of these components
+    int2_str12 <- int2_str13 <- matrix(0, p, p)
+    int2_str12[1, 2] <- int2_str13[1, 3] <- 1
+
+    # define the precision matrices for each of the observations in interval 2
+    int2_prec <- lapply(z2, function(z) common_str +
+                          ((1 - beta0 - beta1 * z) * int2_str12) +
+                          ((beta0 + beta1 * z) * int2_str13))
+
+    # interval 1 has a 1 in the (1, 2) position and interval 3 has a 1 in the
+    # (1, 3) position; define structures for each of these components
+    int1_str12 <- int3_str13 <- matrix(0, p, p)
+    int1_str12[1, 2] <- int3_str13[1, 3] <- 1
+
+    # define the precision matrices for each of the observations in interval 1
+    # and interval 3
+    int1_prec <- rep(list(common_str + int1_str12), n1)
+    int3_prec <- rep(list(common_str + int3_str13), n3)
+
+    # put all of the precision matrices into one list
+    prec_mats <- c(int1_prec, int2_prec, int3_prec)
+
+    # symmetrize the precision matrices
+    true_precision <- lapply(prec_mats, function(mat) t(mat) + mat)
+  }
+
+  # invert the precision matrices to get the covariance matrices
+  cov_mats <- lapply(true_precision, solve)
+
+  # generate the data using the covariance matrices
+  data_mat <- t(sapply(cov_mats, MASS::mvrnorm, n = 1, mu = rep(0, p)))
+  
+  for(contam in idx_contam) {
+    data_mat[contam,] = rmvt(n = 1, 
+                             sigma = cov_mats[[contam]],
+                             df = mvt_df,
+                             type = "Kshirsagar")
+    cov_mats[[contam]] = cov_mats[[contam]]*(mvt_df/(mvt_df - 2))
+    true_precision[[contam]] = solve(cov_mats[[contam]])
+  }
+
+  return(list(X = data_mat, Z = Z, true_precision = true_precision,
+              interval = interval))
+}
+```
+
+```{r non-gaussian-data-gen, cache = TRUE, echo=FALSE}
+set.seed(2468)
+n_trials = 100
+
+simulation_list_non_gaussian_3df = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData2(p, nj, nj, nj, prop_contam = 0.10, mvt_df = 3), F)
+})
+simulation_list_non_gaussian_6df = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData2(p, nj, nj, nj, prop_contam = 0.10, mvt_df = 6), F)
+})
+simulation_list_non_gaussian_15df = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData2(p, nj, nj, nj, prop_contam = 0.10, mvt_df = 15), F)
+})
+```
+
+## Non-Smooth Function of Z
+
+Finally, we want to see what happens if the true graph structure isn't a smoothly varying function of $Z$. In particular, we'll consider the true interpolation of the precision between the first and third interval is given by $\max(\min(\tan(7.5*z),1),0)$ instead of by $\beta_0+\beta_1z$.
+
+```{r bad-z-data-gen-func, echo=FALSE}
+bad_interpolating_func = function(z) {
+  pmax(pmin(tan(7.5*z), 1), 0)
+}
+
+generateData3 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
+                         true_precision = NULL){
+
+  # create covariate for observations in each of the three intervals
+
+  # define number of samples
+  n <- ifelse(is.null(true_precision), sum(n1, n2, n3), length(true_precision))
+
+  # define the intervals
+  limits1 <- c(-3, -1)
+  limits2 <- c(-1, 1)
+  limits3 <- c(1, 3)
+
+  # if Z and true_precision have not been provided, generate Z
+  interval <- NULL
+  if (is.null(Z) & is.null(true_precision)){
+
+    # define the interval labels
+    interval <- c(rep(1, n1), rep(2, n2), rep(3, n3))
+
+    # draw the covariate values within each interval
+    z1 <- sort(stats::runif(n1, limits1[1], limits1[2]))
+    z2 <- sort(stats::runif(n2, limits2[1], limits2[2]))
+    z3 <- sort(stats::runif(n3, limits3[1], limits3[2]))
+    Z <- matrix(c(z1, z2, z3), n, 1)
+  }else if(!is.null(Z) & is.null(true_precision)){
+
+    # Z has been provided and true_precision has not
+    # divide Z into the 3 intervals
+    interval <- as.integer(cut(Z, c(-Inf, -1, 1, Inf), labels = 1:3))
+    z1 <- Z[interval == 1]
+    z2 <- Z[interval == 2]
+    z3 <- Z[interval == 3]
+
+    # get the sample size in each of the intervals
+    n1 <- length(z1)
+    n2 <- length(z2)
+    n3 <- length(z3)
+  }else if(!is.null(Z) & !is.null(true_precision)){
+
+    # Z and true_precision have been provided
+    stop("Z and true_precision cannot both be provided")
+  }
+
+  # if they have not been provided, create the precision matrices
+  if (is.null(true_precision)){
+
+    # the shared part of the structure for all three intervals is a 2 on the
+    # diagonal and a 1 in the (2, 3) position
+    common_str <- diag(p)
+    common_str[2, 3] <- 1
+
+    # interval 2 has two different linear functions of Z in the (1, 2) position
+    # and (1, 3) positions; define structures for each of these components
+    int2_str12 <- int2_str13 <- matrix(0, p, p)
+    int2_str12[1, 2] <- int2_str13[1, 3] <- 1
+
+    # define the precision matrices for each of the observations in interval 2
+    int2_prec <- lapply(z2, function(z) common_str +
+                          ((1 - bad_interpolating_func(z)) * int2_str12) +
+                          ((bad_interpolating_func(z)) * int2_str13))
+
+    # interval 1 has a 1 in the (1, 2) position and interval 3 has a 1 in the
+    # (1, 3) position; define structures for each of these components
+    int1_str12 <- int3_str13 <- matrix(0, p, p)
+    int1_str12[1, 2] <- int3_str13[1, 3] <- 1
+
+    # define the precision matrices for each of the observations in interval 1
+    # and interval 3
+    int1_prec <- rep(list(common_str + int1_str12), n1)
+    int3_prec <- rep(list(common_str + int3_str13), n3)
+
+    # put all of the precision matrices into one list
+    prec_mats <- c(int1_prec, int2_prec, int3_prec)
+
+    # symmetrize the precision matrices
+    true_precision <- lapply(prec_mats, function(mat) t(mat) + mat)
+  }
+
+  # invert the precision matrices to get the covariance matrices
+  cov_mats <- lapply(true_precision, solve)
+
+  # generate the data using the covariance matrices
+  data_mat <- t(sapply(cov_mats, MASS::mvrnorm, n = 1, mu = rep(0, p)))
+
+  return(list(X = data_mat, Z = Z, true_precision = true_precision,
+              interval = interval))
+}
+```
+
+```{r bad-z-data-gen, cache = TRUE, echo=FALSE}
+set.seed(2468)
+n_trials = 100
+
+simulation_list_bad_z = map2(n, p, function(n,p){
+  nj = n %/% 3
+  replicate(n_trials, generateData3(p, nj, nj, nj), F)
+})
+```
