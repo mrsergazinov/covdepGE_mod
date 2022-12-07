@@ -40,34 +40,51 @@ Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $
 
 ## A weighted pseudo-likelihood (W-PL) approach
 
-First we begin with introducing the pseudo-likelihood approach. Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as \begin{equation}
+First we begin with introducing the pseudo-likelihood approach. Suppose there are $n$ individuals, indexed $i = 1,..,n$. Let the $i$-th observation in the data set $X$ be denoted as $X_i = (x_{i,1},...,x_{i,p})$, which corresponds to the $i$-th individual. Let $x_{i,−j} \in \mathbb R^{p−1}$ denote the vector of the $i$-th observation including all variables except $x_{i,j}$. This approach tries to model the conditional distribution of each of the $x_j$'s given all other variables, denoted by $X_{−j} \in \mathbb R^{n \times(p−1)}$. Let the $p − 1$-dimensional vector $\beta_j$ indicate the regression effect on $X_{-j}$ on $x_j$. Then the conditional likelihood of $x_j$ denoted by $L(j)$ can be written as 
+\begin{equation}
 L(j) = p(x_j | X_{-j}, \beta_j) \sim \prod_{i =1}^n \exp \left\{-(x_{i,j} - x_{i, -j}^T\beta_j)^2/ 2\sigma^2 \right\},
-\end{equation} with a possibly sparse coefficient vector $\beta_j$. Then for a fixed graph $G$ the pseudo-likelihood can be calculated as \begin{equation}
+\end{equation} 
+with a possibly sparse coefficient vector $\beta_j$. Then for a fixed graph $G$ the pseudo-likelihood can be calculated as 
+\begin{equation}
 L(G) = \prod_{j =1}^n L(j) = \prod_{j =1}^n p(x_j | X_{-j}, \beta_j). 
 \end{equation}
 
-In this paper different from the previous methods, they define a weighted version of this conditional likelihood for each individual. They assume that the underlying graph structure is a function of extraneous covariates $z$. Thus, we allow the coefficient vector $\beta_j$'s to be different for different individuals,depending on the extraneous covariates. $\beta_j^l \in \mathbb R^{p−1}$ denotes the coefficient vector corresponding to the regression of the variable $x_j$ on the remaining variables for individual $l$. Let $z_i$ denote the covariate vector associated with the $i$-th individual and define $\mathbf z = (\mathbf z_1, . . . , \mathbf z_n)$. Next, relative to the covariate $z$, we assign weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf z_l\Vert)$ to every individual where $\phi_{\tau}$ is the Gaussian density with mean 0 and variance $\tau^2$. When $z = z_l$ corresponds to the $l$-th individual in the study, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual. \\ Proposed conditional working model: for $i = 1, \dots ,n$, $$
+In this paper different from the previous methods, they define a weighted version of this conditional likelihood for each individual. They assume that the underlying graph structure is a function of extraneous covariates $z$. Thus, we allow the coefficient vector $\beta_j$'s to be different for different individuals,depending on the extraneous covariates. $\beta_j^l \in \mathbb R^{p−1}$ denotes the coefficient vector corresponding to the regression of the variable $x_j$ on the remaining variables for individual $l$. Let $z_i$ denote the covariate vector associated with the $i$-th individual and define $\mathbf z = (\mathbf z_1, . . . , \mathbf z_n)$. Next, relative to the covariate $z$, we assign weights $w(z, \mathbf z_i) = \phi_{\tau} (\Vert z − \mathbf z_l\Vert)$ to every individual where $\phi_{\tau}$ is the Gaussian density with mean 0 and variance $\tau^2$. When $z = z_l$ corresponds to the $l$-th individual in the study, we use the notation $w_l(\mathbf z_i) = w(\mathbf z_l, \mathbf z_i)$ to denote the weight associated with the $i$-th individual. 
+
+Proposed conditional working model: for $i = 1, \dots ,n$, 
+$$
 x_{ij} | x_{i, -j}, \mathbf z, z \sim N(x_{i, -j}^T\beta_j(z), \sigma^2/ w(z,\mathbf z_i ))
-$$ Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$. The weighted conditional distribution function can be calculated as
+$$ 
+Next let $W(z, \mathbf z)$ denote the diagonal matrix $\text{Diag}(w(z, \mathbf z_1), \dots , w(z, \mathbf z_n))$. The weighted conditional distribution function can be calculated as
 
 ```{=tex}
 \begin{equation}
 p^w(x_j | X_{-j}, \beta_j(\mathbf z), \mathbf z, z) = \left(\prod_{i =1}^n \sqrt{\frac{w(z, \mathbf z_i)}{2\pi \sigma^2_*}}\right) \exp \left\{ - \frac{(x_j - X_{-j}\beta_j(z))^T W(z, \mathbf z) (x_j - X_{-j}\beta_j(z))}{2 \sigma^2_*}\right\}
 \end{equation}
 ```
-Then using the previous pseudo-likelihood for the graph $G$, we now give the weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$, $$
+Then using the previous pseudo-likelihood for the graph $G$, we now give the weighted pseudo-likelihood for the graph $G(z)$ corresponding to a covariate value $z$, 
+$$
 L^w(G(z)) = \prod_{j =1}^n p^w(x_j | \beta_j(\mathbf z), X_{-j}, \mathbf z, z)
-$$ Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$. So for $k \in \{1, \dots, p \},$ $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$ and equals to zero with probability $1 -\pi$. Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we denote it as $\gamma_{j,k}^l = 1\{\beta_{j,k}^l \neq 0\}$ which can be treated as Bernoulli random variables with a common probability of success $\pi$. Then we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$. Then prior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be written as $$
+$$ 
+Next, we put a prior distribution for the coefficient parameters corresponding to the regression problem described before. Fix an observation $l \in \{ 1, \dots ,n\}$ and a variable $j \in \{1, \dots, p \}$. Then a spike-and-slab prior on the parameter $\beta_j^l$. So for $k \in \{1, \dots, p \},$ $\beta_{j,k}^l$ is assumed to come from a zero-mean Gaussian density with variance component $\sigma^2\sigma^2_\beta$ with probability $\pi$ and equals to zero with probability $1 -\pi$. Let $\gamma_{j,k}^l$ be the indicator of nonzero $\beta_{j,k}^l$ and we denote it as $\gamma_{j,k}^l = 1\{\beta_{j,k}^l \neq 0\}$ which can be treated as Bernoulli random variables with a common probability of success $\pi$. Then we define $\gamma_{j}^l = (\gamma_{j,1}^l, \dots , \gamma_{j,p}^l)$ and $\Gamma^l = \{ \gamma_{j,k}^l, j = 1, \dots , p\}$. Then prior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be written as 
+$$
 p_0(\beta_{j,k}^l, \gamma_{j,k}^l) = \prod_{k =1, k \neq j}^n \delta_0(\beta_{j,k}^l)^{1 - \gamma_{j,k}^l}N(0, \beta_{j,k}^l; 0, \sigma^2\sigma^2_\beta)\prod_{k =1, k \neq j}^n \pi^{\gamma_{j,k}^l}(1 -\pi)^{\gamma_{j,k}^l} .
-$$ Then the posterior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be calculated as $$
+$$ 
+Then the posterior distribution for $(\beta_{j,k}^l, \gamma_{j,k}^l)$ can be calculated as 
+$$
 p(\beta_{j,k}^l, \gamma_{j,k}^l|X) \propto \exp \left\{- \frac{1}{2\sigma^2} \sum_{i =1}^n \left(x_{ij} - \sum_{k =1, k \neq j}^p x_{ik}\beta_{j,k}^l \right)^2 w_l(\mathbf z_i) \right\}p_0(\beta_{j,k}^l, \gamma_{j,k}^l). 
-$$ \## A Block mean-field Variational Inference
+$$ 
+
+## Block Mean Field Variational Inference
 
 Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.\
 
-Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: $$
+Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: 
+$$
 q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
-$$ Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
+$$ 
+Instead of solving the above problem we work on the evidence-lower bound(ELBO): 
+$$
 ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
 $$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have 
 
@@ -79,11 +96,10 @@ Then we have the following variational parameter updates using the batch-wise up
 
 $$ (s\_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)}$$
 
+
 $$
 \mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}
 $$
-
-## The Problem
 
 $$
 \mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik}\left(x_{ij} - \sum_{m \neq j, k} x_{im}\mu_{j,m}^l\alpha_{j,m}^l \right) \right\}
@@ -99,7 +115,7 @@ Despite this model demonstrating superior sensitivity to true dependence relatio
 
 # Attempted Solutions
 
-We'll look at a variety of different modifications to the algorithm in order of least to most extensive changes necessary, and use the `covdepGE` package[@covdepGE] in order to generate data for simulation studies. For some of these solutions, the package's functions will be used without modification and changes will occur outside of the inference algorithm. Otherwise, any changes to the functions will be explicitly noted.
+We'll look at a variety of different modifications to the algorithm in order of least to most extensive changes necessary, and use the `covdepGE` package [@covdepGE] in order to generate data for simulation studies. For some of these solutions, the package's functions will be used without modification and changes will occur outside of the inference algorithm. Otherwise, any changes to the functions will be explicitly noted.
 
 In general, we expect that the underlying cause of the specificity issue is due to having a common prior inclusion probability $\pi$ across every spike-and-slab regression being performed despite the varying values of $Z$ (and potentially $X$). We may expect that for certain values of $Z$, we have a different belief about whether variables in $X$ are related. We'll approach this from 2 angles; first by trying to modify our variables and covariates in such a way as to make a common $\pi$ a more appropriate choice, and then by modifying the algorithm to allow for multiple $\pi$ values to be specified either a priori or as a function $\pi(X,Z)$ through something like clustering.
 
