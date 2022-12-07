@@ -69,11 +69,19 @@ Suppose we have a parameter of interest $\theta$ with intractable posterior dist
 q^*(\theta) = \arg\min_{q \in \Gamma} \text{KL}(q \Vert p(\theta|y)). 
 $$ Instead of solving the above problem we work on the evidence-lower bound(ELBO): $$
 ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
-$$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have $$
-q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
-$$ Then we have the following variational parameter updates using the batch-wise updating algorithm: \$\$ (s\_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)},
+$$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have 
 
-$$\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}$$
+$$
+q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
+$$ 
+
+Then we have the following variational parameter updates using the batch-wise updating algorithm: 
+
+$$ (s\_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)}$$
+
+$$
+\mu_{j, k}^l = \frac{(s_{j, k}^l)^2}{\sigma^2}\sum_{i= 1}^n \left \{ w_l(\mathbf z_i)x_{ik} \right\}
+$$
 
 ## The Problem
 
@@ -84,8 +92,6 @@ $$
 $$
 \text{logit}(\alpha_{j, k}^l) = \text{logit}(\pi) + \frac{(\mu_{j, k}^l)^2}{2(s_{j, k}^l)^2} + \log \left( \frac{s_{j, k}^l}{\sigma\sigma_\beta}\right). 
 $$
-
-\### Side Note for this method: Using these updates, they run several simulations to obtain 'False-Positives'(FP) and 'False-Negatives'(FN). The FP and FN results came bigger than expected. One reason for this might be to use the same $\pi$ for all individuals. Another reason might be scaling problem. We will address these problems in later sections.
 
 # Problem
 
@@ -150,12 +156,12 @@ false_negatives_baseline = results_original %>%
 fp_baseline_str = false_positives_baseline %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Baseline Mean (sd)" = string)
+  rename("Baseline FPs (sd)" = string)
 
 fn_baseline_str = false_negatives_baseline %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Baseline Mean (sd)" = string)
+  rename("Baseline FNs (sd)" = string)
 
 fp_xtable_baseline = fp_baseline_str %>%
   cbind(p, n, .) %>%
@@ -167,15 +173,15 @@ fn_xtable_baseline = fn_baseline_str %>%
   tibble() %>%
   xtable("False \\textbf{negatives} per sample - Normalized Z, Centered X")
 
+combo_xtable_baseline = cbind(p, n, fp_baseline_str, fn_baseline_str) %>%
+  tibble() %>% 
+  xtable("False Positives and False Negatives per sample - Normalized Z, Centered X")
+
 rm(results_original)
 ```
 
 ```{r print-baseline-xtable, results='asis', echo=FALSE}
-print(fp_xtable_baseline, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_baseline, 
+print(combo_xtable_baseline, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
@@ -192,10 +198,7 @@ fp_xtable_mmZ = min_max_Z_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled Z")
+  rename("MM on Z" = string) 
 
 fn_xtable_mmZ = min_max_Z_simulation_results %>%
   map(function(x)
@@ -203,10 +206,7 @@ fn_xtable_mmZ = min_max_Z_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled Z")
+  rename("MM on Z" = string) 
 
 rm(min_max_Z_simulation_results)
 
@@ -218,10 +218,7 @@ fp_xtable_mmX = min_max_X_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled X")
+  rename("MM on X" = string) 
 
 fn_xtable_mmX = min_max_X_simulation_results %>%
   map(function(x)
@@ -229,10 +226,7 @@ fn_xtable_mmX = min_max_X_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled X")
+  rename("MM on X" = string) 
 
 rm(min_max_X_simulation_results)
 
@@ -244,10 +238,7 @@ fp_xtable_mmXZ = min_max_XZ_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled X and Z")
+  rename("MM on Z, X" = string) 
 
 fn_xtable_mmXZ = min_max_XZ_simulation_results %>%
   map(function(x)
@@ -255,36 +246,25 @@ fn_xtable_mmXZ = min_max_XZ_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
+  rename("MM on Z, X" = string) 
+
+combo_xtable_fp_mm = cbind(p, n, fp_baseline_str, fp_xtable_mmZ, fp_xtable_mmX, fp_xtable_mmXZ) %>%
   tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled X and Z")
+  xtable(caption = "False \\textbf{positives} per sample - Max Min Scaling only; (sd)")
+
+combo_xtable_fn_mm = cbind(p, n, fn_baseline_str, fn_xtable_mmZ, fn_xtable_mmX, fn_xtable_mmXZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max Min Scaling only; (sd)")
 
 rm(min_max_XZ_simulation_results)
 ```
 
 ```{r print-mm-only-xtable, results='asis', echo=FALSE}
-print(fp_xtable_mmZ, 
+print(combo_xtable_fp_mm, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
-print(fn_xtable_mmZ, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fp_xtable_mmX, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_mmX, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fp_xtable_mmXZ, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_mmXZ, 
+print(combo_xtable_fn_mm, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
@@ -301,10 +281,7 @@ fp_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled then Normalized Z, Centered X")
+  rename("MM/N Z" = string)
 
 fn_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
   map(function(x)
@@ -312,10 +289,7 @@ fn_xtable_mmnorm_Z = min_max_norm_Z_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled then Normalized Z, Centered X")
+  rename("MM/N Z" = string)
 
 rm(min_max_norm_Z_simulation_results)
 
@@ -327,10 +301,7 @@ fp_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Normalized Z, Max/Min Scaled then Centered X")
+  rename("MM/N X" = string)
 
 fn_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
   map(function(x)
@@ -338,10 +309,7 @@ fn_xtable_mmnorm_X = min_max_norm_X_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Normalized Z, Max/Min Scaled then Centered X")
+  rename("MM/N X" = string)
 
 rm(min_max_norm_X_simulation_results)
 
@@ -353,10 +321,7 @@ fp_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Max/Min Scaled then Centered X and then Normalized Z")
+  rename("MM/N Z, X" = string)
 
 fn_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
   map(function(x)
@@ -364,39 +329,37 @@ fn_xtable_mmnorm_XZ = min_max_norm_XZ_simulation_results %>%
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Max/Min Scaled then Centered X and then Normalized Z")
+  rename("MM/N Z, X" = string)
 
 rm(min_max_norm_XZ_simulation_results)
+
+combo_xtable_fp_mm = cbind(p, n, 
+                           fp_baseline_str, 
+                           fp_xtable_mmnorm_Z, 
+                           fp_xtable_mmnorm_X, 
+                           fp_xtable_mmnorm_XZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Max Min Scaling + Normalization; (sd)")
+
+combo_xtable_fn_mm = cbind(p, n, 
+                           fn_baseline_str, 
+                           fn_xtable_mmnorm_Z, 
+                           fn_xtable_mmnorm_X, 
+                           fn_xtable_mmnorm_XZ) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Max Min Scaling + Normalization; (sd)")
 ```
 
 ```{r print-mm-norm-xtable, results='asis', echo=FALSE}
-print(fp_xtable_mmnorm_Z, 
+print(combo_xtable_fp_mm, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
-print(fn_xtable_mmnorm_Z, 
+print(combo_xtable_fn_mm, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
-print(fp_xtable_mmnorm_X,
-      comment=FALSE,
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_mmnorm_X, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fp_xtable_mmnorm_XZ, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_mmnorm_XZ, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
+
 ```
 
 ## Multiple Prior Inclusion Probabilities
@@ -404,39 +367,36 @@ print(fn_xtable_mmnorm_XZ,
 ### Oracle or Informative Prior
 
 ```{r oracle-sims, include=FALSE, cache = TRUE}
+```{r oracle-sims, include=FALSE, cache = TRUE}
 load("oracle_results.Rda")
 
-fp_xtable_oracle = oracle_results %>%
+fp_xtable_oracle_str = oracle_results %>%
   map(function(x)
     map_dbl(x, pluck, "FP_n")
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fp_baseline_str, .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Oracle Clustering")
+  rename("Mean FP (sd)" = string)
+  
 
-fn_xtable_oracle = oracle_results %>%
+fn_xtable_oracle_str = oracle_results %>%
   map(function(x)
     map_dbl(x, pluck, "FN_n")
   ) %>% 
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p, n, fn_baseline_str, .) %>%
+  rename("Mean FN (sd)" = string)
+
+combo_xtable_oracle = 
+  cbind(p, n, fp_baseline_str, fp_xtable_oracle_str, fn_baseline_str, fn_xtable_oracle_str) %>%
   tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Oracle Clustering")
+  xtable(caption = "False positives \\textbf{and} negatives per sample - Multiple PIP with Oracle Clustering")
 
 rm(oracle_results)
 ```
 
 ```{r print-oracle-xtable, results='asis', echo=FALSE}
-print(fp_xtable_oracle, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_oracle, 
+print(combo_xtable_oracle, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
@@ -448,7 +408,7 @@ print(fn_xtable_oracle,
 k_vec = c(2, 3, 6) %>% as.character()
 load("cluster_results.Rda")
 
-fp_xtable_cluster = cluster_results %>%
+fp_xtable_cluster_str = cluster_results %>%
   map(function(x)
     map(x, function(y)
       map_dbl(y, pluck, "FP_n")
@@ -457,15 +417,9 @@ fp_xtable_cluster = cluster_results %>%
   flatten() %>%
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
-  cbind(p = rep(p, each = 3), 
-        n = rep(n, each = 3), 
-        clusts = rep(k_vec, 4), 
-        "Baseline Mean (sd)" = rep(fp_baseline_str[[1]], each = 3), .) %>%
-  tibble() %>%
-  xtable(caption = "False \\textbf{positives} per sample - Multiple PIP with Hierarchical Clustering")
+  rename("Mean FP (sd)" = string)
 
-fn_xtable_cluster = cluster_results %>%
+fn_xtable_cluster_str = cluster_results %>%
   map(function(x)
     map(x, function(y)
       map_dbl(y, pluck, "FN_n")
@@ -474,23 +428,24 @@ fn_xtable_cluster = cluster_results %>%
   flatten() %>%
   map_chr(meanAndSdStr) %>% 
   data.frame(string = .) %>%
-  rename("Mean (sd)" = string) %>%
+  rename("Mean FN (sd)" = string)
+
+combo_xtable_cluster = 
   cbind(p = rep(p, each = 3), 
         n = rep(n, each = 3), 
         clusts = rep(k_vec, 4), 
-        "Baseline Mean (sd)" = rep(fn_baseline_str[[1]], each = 3), .) %>%
+        "Baseline FPs (sd)" = rep(fp_baseline_str[[1]], each = 3),
+        fp_xtable_cluster_str,
+        "Baseline FNs (sd)" = rep(fn_baseline_str[[1]], each = 3), 
+        fn_xtable_cluster_str) %>%
   tibble() %>%
-  xtable(caption = "False \\textbf{negatives} per sample - Multiple PIP with Hierarchical Clustering")
+  xtable(caption = "False positives \\textbf{and} negatives per sample - Multiple PIP with Hierarchical Clustering")
 
 rm(cluster_results)
 ```
 
 ```{r print-cluster-xtable, results='asis', echo=FALSE}
-print(fp_xtable_cluster, 
-      comment=FALSE, 
-      include.rownames = FALSE,
-      table.placement = "H")
-print(fn_xtable_cluster, 
+print(combo_xtable_cluster, 
       comment=FALSE, 
       include.rownames = FALSE,
       table.placement = "H")
@@ -509,9 +464,9 @@ In order to verify our results, there are a few more experiments we want to try 
 First, we'll consider the case that a proportion of our observations' true data-generating function is just noise; that is, $X_{\textrm{contaminated}} \sim N(0, I)$. Notably, it doesn't depend on $Z$ at all.
 
 ```{r normal-contam-make-table, echo = FALSE, cache=TRUE}
-perc_contam = c(5, 10, 25)
-p = c(5, 15, 25)
-n = c(90, 90, 150)
+perc_contam = c(5, 10, 25) %>% as.integer()
+p = c(5, 15, 25) %>% as.integer()
+n = c(90, 90, 150) %>% as.integer()
 
 extractStrings = function(results, strn, colname) {
   results %>% map(function(x)
@@ -595,7 +550,7 @@ print(bad_gaussian_fn_tbl,
 Next, we'll consider the case that a proportion of our observations' true data-generating function is coming from a multivariate $t$ distribution with $\nu$ degrees of freedom (which we'll restrict to $\nu > 2$. When generating this data, we'll use the covariance matrix $\Sigma$ obtained from $Z$ to instead specify the *scale* matrix of our multivariate $t$ distribution, with the relationship that the true covariance matrix of these $t$ distributed variables is $\Sigma_{t} = \Sigma * \nu/(\nu-2)$
 
 ```{r nongauss-contam-make-table, echo = FALSE, cache=TRUE}
-mvt_df = c(3, 6, 15)
+mvt_df = c(3, 6, 15) %>% as.integer()
 
 load("baseline_results_ng_3df.Rda")
 load("baseline_results_ng_6df.Rda")
