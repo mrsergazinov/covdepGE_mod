@@ -7,6 +7,8 @@ format:
       - preamble.tex
       - text: |
           \addtokomafont{disposition}{\rmfamily}
+    number-sections: true
+    toc: true
 editor: visual
 bibliography: references.bib
 ---
@@ -36,7 +38,7 @@ There are several approaches to model heterogeneous graphs. Here we mention some
 ```
 ## Proposed formulation
 
-Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $n$ individuals on $p$ variables. We denote the rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$ and the columns $x_j \in \mathbb{R}^n$.\\ The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, as a function of some extraneous covariates $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. In this method, a weighted pseudo-likelihood (W-PL) function to obtain a posterior distribution for the graph structure for a fixed individual, with the weights defined as a function of the covariates.
+Let $X \in \mathbb{R}^{n \times p}$ stand for the data matrix corresponding to $n$ individuals on $p$ variables. We denote the rows $X_i \in \mathbb{R}^p$ corresponding the observation for individual $i$ and the columns $x_j \in \mathbb{R}^n$. The main goal of this paper is to learn the graph structure $G$ from a collection of $p$-variate independent samples $X_i$, as a function of some extraneous covariates $z_i$ corresponding to the samples. The only assumption on the dependence structure is that the graph parameters vary smoothly with respect to the covariates, that is, if $z_i$ and $z_j$ are similar, then the graph structure corresponding to $X_i$ and $X_j$ will be similar. In this method, a weighted pseudo-likelihood (W-PL) function to obtain a posterior distribution for the graph structure for a fixed individual, with the weights defined as a function of the covariates.
 
 ## A weighted pseudo-likelihood (W-PL) approach
 
@@ -86,7 +88,7 @@ $$
 Instead of solving the above problem we work on the evidence-lower bound(ELBO): 
 $$
 ELBO = \int q(\theta) \log (p(y, \theta)/ q(\theta)) \ d\theta
-$$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation: \\ Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have 
+$$ and maximize it. For our problem the parameter of interest $\theta =(\beta_{j}^l, \gamma_{j}^l)$. We apply the block mean-field approach for the variational approximation. Let $\phi_{j, k}^l = (\alpha_{j, k}^l, \mu_{j, k}^l, (s_{j, k}^l)^2)$ be free parameters corresponding to the individuals. Then we have 
 
 $$
 q_k(\beta_j^l, \gamma_j^l; \phi_j^l) = N(\beta_{j, k}^l; \mu_{j, k}^l, (s_{j, k}^l)^2)^{\gamma_{j, k}^l}\delta_0(\beta_{j, k}^l)^{1 -\gamma_{j, k}^l}(\alpha_{j, k}^l)^{\gamma_{j, k}^l}(1 - \alpha_{j, k}^l)^{1 -\gamma_{j, k}^l}.
@@ -94,7 +96,9 @@ $$
 
 Then we have the following variational parameter updates using the batch-wise updating algorithm: 
 
-$$ (s\_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)}$$
+$$ 
+(s_{j, k}^l)^2 = \frac{\sigma^2}{1/\sigma^2_\beta + \sum_{i=1}^n x_{ik}^2w_l(\mathbf z_i)}
+$$
 
 
 $$
@@ -121,7 +125,7 @@ In general, we expect that the underlying cause of the specificity issue is due 
 
 ## Feature Scaling Changes
 
-The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a singular prior inclusion probability more appropriate.
+The first approach will be to use a different or additional approach to feature scaling on $X$ and/or $Z$ in order to try and make a single prior inclusion probability more appropriate.
 
 ### Existing Feature Scaling through Normalization
 
@@ -204,6 +208,8 @@ print(combo_xtable_baseline,
 ```
 
 ### Max-Min Feature Scaling
+
+We try max-min scaling that puts all values in the range $[0,1]$ by subtracting the minimum value and dividing by the range. We experiment with doing separately and together for $X$ and $Z$. As we can from Tables 2-3, the max-min scaling on $Z$ alone results in worse performance. Further, whenever max-min sclaing is applied to $X$, the algorithm fails to converge, resulting in no predicted edges. This is likely due to the fact that max-min scaling alters the distribution-shape of $X$. Therefore, we do not pursue this approach further. We explore the robustness of the algorithm to the misspecification (non-normality of the data $X$) in Section 3.3.
 
 ```{r min-max-only-sims, include=FALSE, cache = TRUE}
 load("minmax_Z_sim.Rda")
