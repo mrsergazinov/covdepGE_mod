@@ -500,4 +500,218 @@ print(fn_xtable_cluster,
 
 We experimented with giving every observation its own prior inclusion probability by specifying the cluster mapping as $\{1,2,...,n\}$ however the simulations became computationally unfeasible due to the dimension of the parameter space being grid searched over scaling linearly with $n$. After multiple days of running the simulation crashed due to excessive memory consumption (\>32GB). Based on the previous results with the oracle clustering and hierarchical clustering, and a much smaller example with $p =5, n = 10$, we believe it highly unlikely that having a different prior inclusion probability for every observation would improve the false positive rate.
 
+## Robustness Experiments
+
+In order to verify our results, there are a few more experiments we want to try running. In particular, we want to see whether we can break the Gaussian assumption of our true data generating function. The hope is that the scaling on $X$ will improve the model's robustness to a distribution with fatter tails such as a $t$ distribution with low degrees of freedom. Similarly, we want to try adding a small percentage of 'contaminated' observations who are drawn from an unrelated, independent Gaussian distribution to the one we are trying to work with. We again hope that the additional scaling we do can help combat the effects of the bad data. Finally, we want to see if we can use the additional scaling of $Z$ to account for potential non-smoothness.
+
+### Contamination - Gaussian
+
+First, we'll consider the case that a proportion of our observations' true data-generating function is just noise; that is, $X_{\textrm{contaminated}} \sim N(0, I)$. Notably, it doesn't depend on $Z$ at all.
+
+```{r normal-contam-make-table, echo = FALSE, cache=TRUE}
+perc_contam = c(5, 10, 25)
+p = c(5, 15, 25)
+n = c(90, 90, 150)
+
+extractStrings = function(results, strn, colname) {
+  results %>% map(function(x)
+        map_dbl(x, pluck, strn)
+    ) %>% 
+    map_chr(meanAndSdStr) %>% 
+    data.frame(string = .) %>%
+    rename_with(.fn = function(x){colname})
+}
+
+load("baseline_results_bg_5pc.Rda")
+load("baseline_results_bg_10pc.Rda")
+load("baseline_results_bg_25pc.Rda")
+baseline_results_bg = list(baseline_results_bg_5pc,
+                           baseline_results_bg_10pc,
+                           baseline_results_bg_25pc)
+rm(baseline_results_bg_5pc, 
+   baseline_results_bg_10pc, 
+   baseline_results_bg_25pc)
+
+
+baseline_fp_bad_gaussian = baseline_results_bg %>% 
+  map_dfr(~extractStrings(.x, strn = "FP_n", colname = "Baseline Mean (sd)"))
+
+baseline_fn_bad_gaussian = baseline_results_bg %>%
+  map_dfr(~extractStrings(.x, strn = "FN_n", colname = "Baseline Mean (sd)"))
+
+rm(baseline_results_bg)
+
+
+load("mm_results_bg_5pc.Rda")
+load("mm_results_bg_10pc.Rda")
+load("mm_results_bg_25pc.Rda")
+mm_results_bg = list(mm_results_bg_5pc,
+                     mm_results_bg_10pc,
+                     mm_results_bg_25pc)
+rm(mm_results_bg_5pc,
+   mm_results_bg_10pc,
+   mm_results_bg_25pc)
+
+mm_fp_bad_gaussian = mm_results_bg %>%
+  map_dfr(~extractStrings(.x, strn = "FP_n", colname = "MM Mean (sd)"))
+
+mm_fn_bad_gaussian = mm_results_bg %>%
+  map_dfr(~extractStrings(.x, strn = "FN_n", colname = "MM Mean (sd)"))
+
+rm(mm_results_bg)
+
+bad_gaussian_fp_tbl = 
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        'Perc. Corrupt' = rep(perc_contam, 3), 
+        baseline_fp_bad_gaussian,
+        mm_fp_bad_gaussian) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Gaussian contamination in data")
+
+bad_gaussian_fn_tbl = 
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        'Perc. Corrupt' = rep(perc_contam, 3), 
+        baseline_fn_bad_gaussian,
+        mm_fn_bad_gaussian) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Gaussian contamination in data")
+```
+
+```{r print-bg-xtable, results='asis', echo=FALSE}
+print(bad_gaussian_fp_tbl, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(bad_gaussian_fn_tbl, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+### Contamination - Non-Gaussian
+
+Next, we'll consider the case that a proportion of our observations' true data-generating function is coming from a multivariate $t$ distribution with $\nu$ degrees of freedom (which we'll restrict to $\nu > 2$. When generating this data, we'll use the covariance matrix $\Sigma$ obtained from $Z$ to instead specify the *scale* matrix of our multivariate $t$ distribution, with the relationship that the true covariance matrix of these $t$ distributed variables is $\Sigma_{t} = \Sigma * \nu/(\nu-2)$
+
+```{r nongauss-contam-make-table, echo = FALSE, cache=TRUE}
+mvt_df = c(3, 6, 15)
+
+load("baseline_results_ng_3df.Rda")
+load("baseline_results_ng_6df.Rda")
+load("baseline_results_ng_15df.Rda")
+baseline_results_ng = list(baseline_results_ng_3df,
+                           baseline_results_ng_6df,
+                           baseline_results_ng_15df)
+rm(baseline_results_ng_3df, 
+   baseline_results_ng_6df, 
+   baseline_results_ng_15df)
+
+baseline_fp_non_gaussian = baseline_results_ng %>%
+  map_dfr(~extractStrings(.x, strn = "FP_n", colname = "Baseline Mean (sd)"))
+
+baseline_fn_non_gaussian = baseline_results_ng %>%
+  map_dfr(~extractStrings(.x, strn = "FN_n", colname = "Baseline Mean (sd)"))
+
+rm(baseline_results_ng)
+
+load("mm_results_ng_3df.Rda")
+load("mm_results_ng_6df.Rda")
+load("mm_results_ng_15df.Rda")
+mm_results_ng = list(mm_results_ng_3df,
+                     mm_results_ng_6df,
+                     mm_results_ng_15df)
+rm(mm_results_ng_3df,
+   mm_results_ng_6df,
+   mm_results_ng_15df)
+
+mm_fp_non_gaussian = mm_results_ng %>%
+  map_dfr(~extractStrings(.x, strn = "FP_n", colname = "MM Mean (sd)"))
+
+mm_fn_non_gaussian = mm_results_ng %>%
+  map_dfr(~extractStrings(.x, strn = "FN_n", colname = "MM Mean (sd)"))
+
+non_gaussian_fp_tbl = 
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        't-df' = rep(mvt_df, 3), 
+        baseline_fp_non_gaussian,
+        mm_fp_non_gaussian) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - Multivariate-t contamination in data")
+
+non_gaussian_fn_tbl = 
+  cbind(p = rep(p, each = 3), 
+        n = rep(n, each = 3), 
+        't-df' = rep(mvt_df, 3), 
+        baseline_fn_non_gaussian,
+        mm_fn_non_gaussian) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - Multivariate-t contamination in data")
+```
+
+```{r print-ng-xtable, results='asis', echo=FALSE}
+print(non_gaussian_fp_tbl, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(non_gaussian_fn_tbl, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
+
+### Non-Smooth Function of Z
+
+Finally, we want to see what happens if the true graph structure isn't a smoothly varying function of $Z$. In particular, we'll consider the true interpolation of the precision between the first and third interval is given by $\max(\min(\tan(7.5*z),1),0)$ instead of by $\beta_0+\beta_1z$.
+
+
+```{r bad-z-make-table, echo = FALSE, cache=TRUE}
+load("baseline_results_bad_z.Rda")
+baseline_fp_bad_z = baseline_results_bad_z %>%
+  extractStrings(strn = "FP_n", colname = "Baseline Mean (sd)")
+
+baseline_fn_bad_z = baseline_results_bad_z %>%
+  extractStrings(strn = "FN_n", colname = "Baseline Mean (sd)")
+
+rm(baseline_results_bad_z)
+
+load("mm_results_bad_z.Rda")
+mm_fp_bad_z = mm_results_bad_z %>%
+  extractStrings(strn = "FP_n", colname = "MM Mean (sd)")
+
+mm_fn_bad_z = mm_results_bad_z %>%
+  extractStrings(strn = "FN_n", colname = "MM Mean (sd)")
+
+rm(mm_results_bad_z)
+
+bad_z_fp_tbl = 
+  cbind(p = p, 
+        n = n, 
+        baseline_fp_bad_z,
+        mm_fp_bad_z) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{positives} per sample - True precision not smoothly varying with Z")
+
+bad_z_fn_tbl = 
+  cbind(p = p, 
+        n = n, 
+        baseline_fn_bad_z,
+        mm_fn_bad_z) %>%
+  tibble() %>%
+  xtable(caption = "False \\textbf{negatives} per sample - True precision not smoothly varying with Z")
+```
+
+```{r print-bz-xtable, results='asis', echo=FALSE}
+print(bad_z_fp_tbl, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+print(bad_z_fn_tbl, 
+      comment=FALSE, 
+      include.rownames = FALSE,
+      table.placement = "H")
+```
+
 ## References
