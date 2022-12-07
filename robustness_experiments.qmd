@@ -11,8 +11,12 @@ library(purrr)
 library(Matrix)
 library(xtable)
 library(mvtnorm)
-p = c(5, 15, 25, 50)
-n = c(90, 90, 150, 150)
+p = c(5, 15, 25)
+n = c(90, 90, 150)
+# p = c(5)
+# n = c(90)
+num_workers <- parallel::detectCores() - 4
+doParallel::registerDoParallel(cores = num_workers)
 ```
 
 ```{r sim-functions, include=FALSE}
@@ -59,9 +63,9 @@ covdepGE.eval <- function(X, Z, true, n_workers, transforms = TRUE, pip_assgn = 
     out <- covdepGE(X = X,
                   Z = Z,
                   parallel = T,
-                  num_workers = n_workers,
                   center_X = FALSE,
                   scale_Z = FALSE,
+                  num_workers = n_workers,
                   pip_assgn = pip_assgn)
   }
   
@@ -93,8 +97,7 @@ covdepGE.eval <- function(X, Z, true, n_workers, transforms = TRUE, pip_assgn = 
 simulation_func = function(n_trials, 
                            data_list, 
                            num_workers, 
-                           normalize,
-                           pip_assgn = NULL) {
+                           normalize) {
   
   results <- vector("list", n_trials)
   names(results) <- c(paste0("trial", 1:n_trials))
@@ -120,8 +123,7 @@ simulation_func = function(n_trials,
                                          Z = data$Z,
                                          true = graph,
                                          n_workers = num_workers,
-                                         transforms = normalize,
-                                         pip_assgn = pip_assgn),
+                                         transforms = normalize),
                            error = function(e) list(error = e))
   if (!is.null(out_covdepGE$error)) message(out_covdepGE$error)
 
@@ -134,13 +136,33 @@ simulation_func = function(n_trials,
 
 ```
 
+```{r min-max-funcs}
+
+max_min_scale = function(X) { # Scale each column by max-min
+  # Columnwise; subtract min and divide by resulting max
+  if(!is.matrix(X)) { # for vectors
+    X = as.matrix(X)
+  } 
+  p = ncol(X)
+  n = nrow(X)
+  # faster with max.col(X) and max.col(-X)
+  mins = as.vector(apply(X, 2, min)) 
+  scaled_X = t(t(X)-mins)
+  maxs = as.vector(apply(scaled_X, 2, max))
+  scaled_X = t(t(scaled_X)/maxs)
+  return(list(scaled_X = scaled_X, add_invs = mins, mult_invs = maxs))
+}
+
+max_min_unscale = function(output) {
+  t(t(output$scaled_X)*output$mult_invs + output$add_invs)
+}
+```
+
 In order to verify our results, there are a few more experiments we want to try running. In particular, we want to see whether we can break the Gaussian assumption of our true data generating function. The hope is that the scaling on $X$ will improve the model's robustness to a distribution with fatter tails such as a $t$ distribution with low degrees of freedom. Similarly, we want to try adding a small percentage of 'contaminated' observations who are drawn from an unrelated, independent Gaussian distribution to the one we are trying to work with. We again hope that the additional scaling we do can help combat the effects of the bad data. Finally, we want to see if we can use the additional scaling of $Z$ to account for potential non-smoothness; for example if $Z$ was double exponentially distributed.
 
 ## Contamination - Gaussian
 
 First, we'll consider the case that a proportion of our observations' true data-generating function is just noise; that is, $X_{\textrm{contaminated}} \sim N(0, I)$. Notably, it doesn't depend on $Z$ at all.
-
-
 
 ```{r bad-gaussian-data-gen-func, echo=FALSE}
 generateData1 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
@@ -234,7 +256,9 @@ generateData1 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
   }
   
   # contaminate the identified precision matrices
-  true_precision[idx_contam] = diag(p)
+  for(contam in idx_contam) {
+    true_precision[[contam]] = diag(p)
+  }
 
   # invert the precision matrices to get the covariance matrices
   cov_mats <- lapply(true_precision, solve)
@@ -263,6 +287,99 @@ simulation_list_bad_gaussian_25perc = map2(n, p, function(n,p){
   nj = n %/% 3
   replicate(n_trials, generateData1(p, nj, nj, nj, prop_contam = 0.25), F)
 })
+```
+
+```{r run-baseline-bad-gaussian, cache=TRUE, warning=FALSE, message=FALSE}
+
+
+baseline_results_bg_5pc = simulation_list_bad_gaussian_5perc %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_bg_5pc, file = "baseline_results_bg_5pc.Rda")
+rm(baseline_results_bg_5pc)
+  
+baseline_results_bg_10pc = simulation_list_bad_gaussian_10perc %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_bg_10pc, file = "baseline_results_bg_10pc.Rda")
+rm(baseline_results_bg_10pc)
+  
+baseline_results_bg_25pc = simulation_list_bad_gaussian_25perc %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_bg_25pc, file = "baseline_results_bg_25pc.Rda")
+rm(baseline_results_bg_25pc)
+```
+
+```{r mm-scale-bad-gaussian, cache=TRUE, echo=FALSE}
+mm_sim_l_bg_5pc = simulation_list_bad_gaussian_5perc %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_bad_gaussian_5perc)
+
+mm_sim_l_bg_10pc = simulation_list_bad_gaussian_10perc %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_bad_gaussian_10perc)
+
+mm_sim_l_bg_25pc = simulation_list_bad_gaussian_25perc %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_bad_gaussian_25perc)
+```
+
+```{r run-mm-bad-gaussian, cache=TRUE, warning=FALSE, message=FALSE}
+
+mm_results_bg_5pc = mm_sim_l_bg_5pc %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_bg_5pc, file = "mm_results_bg_5pc.Rda")
+rm(mm_results_bg_5pc)
+  
+mm_results_bg_10pc = mm_sim_l_bg_10pc %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_bg_10pc, file = "mm_results_bg_10pc.Rda")
+rm(mm_results_bg_10pc)
+  
+mm_results_bg_25pc = mm_sim_l_bg_25pc %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_bg_25pc, file = "mm_results_bg_25pc.Rda")
+rm(mm_results_bg_25pc)
 ```
 
 ## Contamination - Non-Gaussian
@@ -382,7 +499,7 @@ generateData2 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
 ```
 
 ```{r non-gaussian-data-gen, cache = TRUE, echo=FALSE}
-set.seed(2468)
+set.seed(36912)
 n_trials = 100
 
 simulation_list_non_gaussian_3df = map2(n, p, function(n,p){
@@ -397,6 +514,98 @@ simulation_list_non_gaussian_15df = map2(n, p, function(n,p){
   nj = n %/% 3
   replicate(n_trials, generateData2(p, nj, nj, nj, prop_contam = 0.10, mvt_df = 15), F)
 })
+```
+
+```{r run-baseline-non-gaussian, cache=TRUE, warning=FALSE, message=FALSE}
+
+baseline_results_ng_3df = simulation_list_non_gaussian_3df %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_ng_3df, file = "baseline_results_ng_3df.Rda")
+rm(baseline_results_ng_3df)
+  
+baseline_results_ng_6df = simulation_list_non_gaussian_6df %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_ng_6df, file = "baseline_results_ng_6df.Rda")
+rm(baseline_results_ng_6df)
+  
+baseline_results_ng_15df = simulation_list_non_gaussian_15df %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_ng_15df, file = "baseline_results_ng_15df.Rda")
+rm(baseline_results_ng_15df)
+```
+
+```{r mm-scale-non-gaussian, cache=TRUE, echo=FALSE}
+mm_sim_l_ng_3df = simulation_list_non_gaussian_3df %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_non_gaussian_3df)
+
+mm_sim_l_ng_6df = simulation_list_non_gaussian_6df %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_non_gaussian_6df)
+
+mm_sim_l_ng_15df = simulation_list_non_gaussian_15df %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_non_gaussian_15df)
+```
+
+```{r run-mm-non-gaussian, cache=TRUE, warning=FALSE, message=FALSE}
+
+mm_results_ng_3df = mm_sim_l_ng_3df %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_ng_3df, file = "mm_results_ng_3df.Rda")
+rm(mm_results_ng_3df)
+  
+mm_results_ng_6df = mm_sim_l_ng_6df %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_ng_6df, file = "mm_results_ng_6df.Rda")
+rm(mm_results_ng_6df)
+  
+mm_results_ng_15df = mm_sim_l_ng_15df %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_ng_15df, file = "mm_results_ng_15df.Rda")
+rm(mm_results_ng_15df)
 ```
 
 ## Non-Smooth Function of Z
@@ -499,7 +708,7 @@ generateData3 <- function(p = 5, n1 = 60, n2 = 60, n3 = 60, Z = NULL,
 ```
 
 ```{r bad-z-data-gen, cache = TRUE, echo=FALSE}
-set.seed(2468)
+set.seed(481624)
 n_trials = 100
 
 simulation_list_bad_z = map2(n, p, function(n,p){
@@ -507,3 +716,45 @@ simulation_list_bad_z = map2(n, p, function(n,p){
   replicate(n_trials, generateData3(p, nj, nj, nj), F)
 })
 ```
+
+```{r run-baseline-bad-z, cache=TRUE, warning=FALSE, message=FALSE}
+
+baseline_results_bad_z = simulation_list_bad_z %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(baseline_results_bad_z, file = "baseline_results_bad_z.Rda")
+rm(baseline_results_bad_z)
+```
+
+```{r mm-scale-bad-z, cache=TRUE, echo=FALSE}
+mm_sim_l_bad_z = simulation_list_bad_z %>% map(function(setup){
+  map(setup, function(sim) {
+    output = max_min_scale(sim$X)
+    sim$X = output$scaled_X
+    sim$scaleout = output
+    output2 = max_min_scale(sim$Z)
+    sim$Z = output2$scaled_X
+    sim$scaleoutZ = output2
+    sim
+  })
+})
+
+rm(simulation_list_bad_z)
+```
+
+```{r run-mm-non-gaussian, cache=TRUE, warning=FALSE, message=FALSE}
+
+mm_results_bad_z = mm_sim_l_bad_z %>% map(function(setup){
+    simulation_func(n_trials, setup, num_workers, normalize = TRUE)
+})
+
+save(mm_results_bad_z, file = "mm_results_bad_z.Rda")
+rm(mm_results_bad_z)
+
+```
+
+
+
+
+
