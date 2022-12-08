@@ -23,7 +23,7 @@ library(xtable)
 
 # Background and Introduction
 
-Undirected graphical models enables to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ i.d.d. observations $x_1, \dots , x_p$. Several methods developed under this assumption however, in practice, the observations may not be identically distributed. In this paper they suppose the variability in the graph structure across observations depending on additional covariate information.
+Undirected graphical models enable to model multivariate distributions. Suppose we observe a $p$-dimensional sample $x = (x_1, \dots , x_p)$ from a multivariate Gaussian distribution with a non-singular covariance matrix. Then the conditional independence structure of the distribution can be represented with a graph $G$. The graph $G = (V, E)$ is characterized by a node set $V = (1, \dots, p)$ corresponding to the $p$ variables, and an edge set $E$ such that $(i,j)\in E$ if and only if $x_i$ and $x_j$ are conditionally dependent given all other variable. The goal is to estimate the underlying graph $G$ from given $n$ i.d.d. observations $x_1, \dots , x_p$. Several methods developed under this assumption however, in practice, the observations may not be identically distributed. In this paper they suppose the variability in the graph structure across observations depending on additional covariate information.
 
 ## Current Literature and Previous Methods
 
@@ -32,7 +32,7 @@ There are several approaches to model heterogeneous graphs. Here we mention some
 ```{=tex}
 \begin{itemize}
 \item Without using covariate information: These methods depend on the criteria of first splitting the data into homogeneous groups and sharing information withing groups
-\item Adding the covariates into the mean structure of Gaussian graphical models as multiple linear regressions such that the mean is a continuous function of covariates. This approaches studied from a Bayesian perspective and a frequentist perspective. For this approach still uses the homogeneous graph structure for all observation which we do not want. 
+\item Adding the covariates into the mean structure of Gaussian graphical models as multiple linear regressions such that the mean is a continuous function of covariates. This approaches is studied from a Bayesian perspective and a frequentist perspective. For this approach still uses the homogeneous graph structure for all observations which we do not want. 
 \item Modeling the underlying covariance matrix as a function of the covariates. The main difficulty of this approach is to enforce sparsity in the precision matrix while being positive definite, as the sparsity in the covariance matrix does not normally carry to the precision matrix through matrix inversion.
 \end{itemize}
 ```
@@ -79,7 +79,7 @@ $$
 
 ## Block Mean Field Variational Inference
 
-Variational inference is one of popular ways to approximate the posterior distribution. In this section first we give a brief introduction to it. Then we will connect it with our problem.\
+Variational inference is one of the popular ways to approximate the posterior distribution. In this section, first, we give a brief introduction to it. Then we will connect it with our problem.\
 
 Suppose we have a parameter of interest $\theta$ with intractable posterior distribution $p(\theta)$, an observed data vector $y$, and the variational tractable family of densities $q(\theta)$. Then we want to find the best approximating density $q^*$ in a tractable family of densities $\Gamma$ with respect to KL-divergence: 
 $$
@@ -129,7 +129,7 @@ The first approach will be to use a different or additional approach to feature 
 
 ### Existing Feature Scaling through Normalization
 
-Currently, the default behavior in the `covdepGE` function is to perform a columnwise Z-score Normalization on $Z$ and a columnwise 0 centering on $X$. For brevity we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
+Currently, the default behavior in the `covdepGE` function is to perform a column-wise Z-score Normalization on $Z$ and a column-wise 0 centering on $X$. For brevity, we'll denote this procedure by "normalization". The baseline performance under this scheme is given below. All experiments were run under 4 different setups each having different values for $p$ and $n$, and data was simulated using the `generateData` function. To assess sensitivity and specificity, we'll examine the number of false positives per sample and the number of false negatives per sample across 100 replications of each simulation setup. So, in all cases lower numbers are desirable. First, we'll look at the baseline performance of the existing function with no changes to the default behavior.
 
 ```{r baseline-sims, include=FALSE, cache = TRUE}
 # Utility function for tables
@@ -209,7 +209,7 @@ print(combo_xtable_baseline,
 
 ### Max-Min Feature Scaling
 
-We try max-min scaling that puts all values in the range $[0,1]$ by subtracting the minimum value and dividing by the range. We experiment with doing separately and together for $X$ and $Z$. As we can from Tables 2-3, the max-min scaling on $Z$ alone results in worse performance. Further, whenever max-min sclaing is applied to $X$, the algorithm fails to converge, resulting in no predicted edges. This is likely due to the fact that max-min scaling alters the distribution-shape of $X$. Therefore, we do not pursue this approach further. We explore the robustness of the algorithm to the misspecification (non-normality of the data $X$) in Section 3.3.
+We try max-min scaling that puts all values in the range $[0,1]$ by subtracting the minimum value and dividing by the range. We experiment with doing separately and together for $X$ and $Z$. As we can from Tables 2-3, the max-min scaling on $Z$ alone results in worse performance. Further, whenever max-min scaling is applied to $X$, the algorithm fails to converge, resulting in no predicted edges. This is likely due to the fact that max-min scaling alters the distribution shape of $X$. Therefore, we do not pursue this approach further. We explore the robustness of the algorithm to the misspecification (non-normality of the data $X$) in Section 3.3.
 
 ```{r min-max-only-sims, include=FALSE, cache = TRUE}
 load("minmax_Z_sim.Rda")
@@ -293,6 +293,8 @@ print(combo_xtable_fn_mm,
 ```
 
 ### Max-Min + Normalization Feature Scaling
+
+To reduce the distribution-shape mismatch, we also apply normalization after min-max scaling. We try this separately for $X$ and $Z$. The results are shown in Tables 4-5. From the results, we can see that the false positive rate drops by $15\%$ on average. However, the false negative rate increases by $5\%$ on average. This is likely due to the fact that normalization reduces the variance of the data, which in turn reduces the power of the algorithm to detect the true edges. Overall, we consider this method to be viable for specific applications but not optimal. 
 
 ```{r min-max-norm-sims, include=FALSE, cache = TRUE}
 load("minmax_norm_Z_sim.Rda")
@@ -386,7 +388,10 @@ print(combo_xtable_fn_mm,
 
 ## Multiple Prior Inclusion Probabilities
 
+We investigate the algorithm under multiple inclusion probability specifications. In particular, we study the case when separate inclusion probability, $\pi^{l}$, is specified for each observation $l = \{1, 2, \dots, n \}$. We break this problem down further into the clustering and hyperparameter estimation steps. In the clustering step, we assign each observation to a cluster based on the extraneous covariates. In the hyperparameter estimation step, we select individual inclusion probabilities for each cluster. We note that the computational complexity of the algorithm scales linearly with the number of clusters. This is because the hyperparameter optimization has to be run independently for each cluster, which introduces an additional loop.
+
 ### Oracle or Informative Prior
+In the simulation settings, the exact mapping of observation into clusters is typically known. We first try this approach and report the results in Table 6. From Table 6, we see that we get a uniformly worse false positives rate. At the same time, the false negative rate seems to be similar to the baseline. We hypothesize that this happens due to the algorithm implicitly favoring reducing false negatives more than false positives. Thus, when endowed with more flexibility (more parameters), the algorithm starts to overfit the data. This is corroborated by the fact that the false negatives stay the same (or get slightly better for $n=150, p=50$ case), while the false positives get worse. In this sense, a single inclusion probability is more robust to overfitting.
 
 ```{r oracle-sims, include=FALSE, cache = TRUE}
 ```{r oracle-sims, include=FALSE, cache = TRUE}
@@ -425,6 +430,8 @@ print(combo_xtable_oracle,
 ```
 
 ### Prior Inclusion through Covariate Clustering
+
+We investigate data-driven observation clustering through extraneous covariates. We start with parametric algorithms with a fixed number of clusters to test our hypothesize that there is an inherent trade-off between false negative and false positive rates. In particular, more flexible algorithms (more clusters) tend to overfit, resulting in a better false negative rate at the expense of the worse false positive rate. We test this hypothesis by running the algorithm with $k = 2, 3, 6$ clusters for each case. We report our results in Table 7, which confirms our beliefs. For $p \leq 25$, the number of clusters does not seem to affect the false negative performance; however, the false positive rate gets worse. For $p>25$, we most clearly see that as the number of clusters goes up, the false negative rate gets better; however, the false positive rate gets worse. 
 
 ```{r clustered-sims, include=FALSE, cache = TRUE}
 k_vec = c(2, 3, 6) %>% as.character()
@@ -475,11 +482,11 @@ print(combo_xtable_cluster,
 
 ### Prior Inclusion at the Individual Level
 
-We experimented with giving every observation its own prior inclusion probability by specifying the cluster mapping as $\{1,2,...,n\}$ however the simulations became computationally unfeasible due to the dimension of the parameter space being grid searched over scaling linearly with $n$. After multiple days of running the simulation crashed due to excessive memory consumption (\>32GB). Based on the previous results with the oracle clustering and hierarchical clustering, and a much smaller example with $p =5, n = 10$, we believe it highly unlikely that having a different prior inclusion probability for every observation would improve the false positive rate.
+We experimented with giving every observation its own prior inclusion probability by specifying the cluster mapping as $\{1,2,...,n\}$; however the simulations became computationally unfeasible due to the dimension of the parameter space being grid searched over scaling linearly with $n$. After multiple days of running the simulation crashed due to excessive memory consumption (\>32GB). Based on the previous results with the oracle clustering and hierarchical clustering, and a much smaller example with $p =5, n = 10$, we believe it highly unlikely that having a different prior inclusion probability for every observation would improve the false positive rate.
 
 ## Robustness Experiments
 
-In order to verify our results, there are a few more experiments we want to try running. In particular, we want to see whether we can break the Gaussian assumption of our true data generating function. The hope is that the scaling on $X$ will improve the model's robustness to a distribution with fatter tails such as a $t$ distribution with low degrees of freedom. Similarly, we want to try adding a small percentage of 'contaminated' observations who are drawn from an unrelated, independent Gaussian distribution to the one we are trying to work with. We again hope that the additional scaling we do can help combat the effects of the bad data. Finally, we want to see if we can use the additional scaling of $Z$ to account for potential non-smoothness.
+In order to verify our results, there are a few more experiments we want to try running. In particular, we want to see whether we can break the Gaussian assumption of our true data-generating function. The hope is that the scaling on $X$ will improve the model's robustness to a distribution with fatter tails such as a $t$ distribution with low degrees of freedom. Similarly, we want to try adding a small percentage of 'contaminated' observations that are drawn from an unrelated, independent Gaussian distribution to the one we are trying to work with. We again hope that the additional scaling we do can help combat the effects of the bad data. Finally, we want to see if we can use the additional scaling of $Z$ to account for potential non-smoothness.
 
 ### Contamination - Gaussian
 
@@ -691,4 +698,10 @@ print(bad_z_fn_tbl,
       table.placement = "H")
 ```
 
-## References
+
+# Discussion
+
+In this project, we have explored different approaches for reducing the false positive rate in the recently proposed `covdepGE` algorithm for covariate dependence estimation. The specific modifications we have investigated are: 1) different re-scaling techniques, 2) individual inclusion probabilities for observation clusters. Based on the obtained results, we conclude that the re-scaling techniques are the best among the methods we have tested. They provide similar performance in terms of the false negatives and a slightly better false positive rate than the baseline. Somewhat surprisingly, the individual inclusion probabilities do not seem to improve the performance of the algorithm. We hypothesize that this is due to the fact that the algorithm implicitly favors improvements in the false negative rate over the false positive rate. Hence, it starts to overfit when given more flexibility, showing much better false negative performance but failing to reduce the false positive rate.
+
+
+# References
